@@ -951,6 +951,64 @@ const TEMPLATES = [
   roundRect(c, 164, 86, 32, 10, 3); c.fill(); c.stroke(); roundRect(c, 167, 96, 26, 10, 3); c.fill(); c.stroke();
   return on ? { bottom: "Let's double-click on that" } : {};
 }},
+{ id: 'bear', pack: 'strategy', name: 'Bear Market', e: '🐻', frames: 32, draw(c, t, f) {
+  c.fillStyle = '#0f1420'; c.fillRect(0, 0, W, W);
+  c.strokeStyle = 'rgba(120,140,180,.13)'; c.lineWidth = 1;
+  for (let x = 0; x < W; x += 36) line(c, x, 26, x, W);
+  for (let y = 26; y < W; y += 36) line(c, 0, y, W, y);
+  // falling candlestick chart: scrolls left while the camera follows it down, so the loop is seamless
+  const N = 8, sp = 30, slope = 21, u = t * N;
+  const mid = [];
+  for (let i = -2; i < 16 + N; i++) {
+    const k = i - u, x = 14 + k * sp; if (x < -20 || x > W + 20) continue;
+    const r = ((i % N) + N) % N, y = 58 + k * slope + (rnd(r) - .5) * 26;
+    const up = rnd(r + .5) > .78, bh = 10 + rnd(r + .3) * 22;
+    const o = up ? y + bh * .3 : y - bh * .5, cl = up ? y - bh * .4 : y + bh * .5;
+    c.strokeStyle = up ? '#2fd67a' : '#ff4d5e'; c.lineWidth = 2; line(c, x, Math.min(o, cl) - 8 - rnd(r + .7) * 10, x, Math.max(o, cl) + 8 + rnd(r + .9) * 10);
+    c.fillStyle = up ? '#2fd67a' : '#ff4d5e'; c.fillRect(x - 8, Math.min(o, cl), 16, Math.abs(cl - o));
+    mid.push([x, y]);
+  }
+  c.strokeStyle = 'rgba(255,77,94,.55)'; c.lineWidth = 3; c.beginPath(); mid.forEach(([x, y], i) => i ? c.lineTo(x, y) : c.moveTo(x, y)); c.stroke();
+  // pulsing down arrow
+  const pa = .35 + .3 * (.5 + .5 * Math.sin(TAU * t * 4));
+  c.fillStyle = `rgba(255,40,60,${pa})`; c.beginPath();
+  c.moveTo(300, 52); c.lineTo(330, 52); c.lineTo(330, 110); c.lineTo(350, 110); c.lineTo(315, 150); c.lineTo(280, 110); c.lineTo(300, 110); c.closePath(); c.fill();
+  // ticker tape
+  c.fillStyle = '#2a0d10'; c.fillRect(0, 0, W, 26);
+  const tape = 'STONKS ▼ 69.0%     VIBES ▼ 42.0%     T$ ▼ 99.9%     SYNERGY ▼ 12.3%     MORALE ▼ 88.8%     ';
+  c.font = '800 14px "Bricolage Grotesque", sans-serif'; c.textAlign = 'left'; c.textBaseline = 'middle'; c.fillStyle = '#ff4d5e';
+  const tw = c.measureText(tape).width, tx = -t * tw;
+  for (let x = tx; x < W; x += tw) c.fillText(tape, x, 14);
+  c.textBaseline = 'alphabetic';
+  // the bear
+  const sway = Math.sin(TAU * t * 2), cx = 180 + sway * 10, BR = '#7a4a2a', LT = '#c9935f';
+  c.save(); c.translate(180, 372); c.scale(.8, .8); c.translate(-180, -372);
+  c.save(); c.translate(cx, 0); c.rotate(sway * .04); c.translate(-cx, 0);
+  for (const d of [-1, 1]) { c.beginPath(); c.ellipse(cx + d * 42, 344, 28, 18, 0, 0, TAU); fs(c, BR, 4); c.beginPath(); c.ellipse(cx + d * 42, 346, 13, 9, 0, 0, TAU); c.fillStyle = LT; c.fill(); }
+  c.beginPath(); c.ellipse(cx, 286, 80, 70, 0, 0, TAU); fs(c, BR, 4);
+  c.beginPath(); c.ellipse(cx, 298, 48, 46, 0, 0, TAU); c.fillStyle = LT; c.fill();
+  for (const d of [-1, 1]) {
+    const a = Math.PI * .78 + .38 * Math.sin(TAU * t * 4 + (d > 0 ? Math.PI : 0));
+    const sx = cx + d * 62, sy = 248, ex = sx + d * Math.sin(a) * 74, ey = sy + Math.cos(a) * 74;
+    c.lineCap = 'round'; c.strokeStyle = INK; c.lineWidth = 36; line(c, sx, sy, ex, ey);
+    c.strokeStyle = BR; c.lineWidth = 29; line(c, sx, sy, ex, ey);
+    c.beginPath(); c.arc(ex, ey, 19, 0, TAU); fs(c, BR, 4);
+    c.strokeStyle = '#f4ead2'; c.lineWidth = 3.5;
+    for (let k = -1; k <= 1; k++) { const ca = Math.atan2(ey - sy, ex - sx) + k * .45; line(c, ex + Math.cos(ca) * 15, ey + Math.sin(ca) * 15, ex + Math.cos(ca) * 26, ey + Math.sin(ca) * 26); }
+  }
+  for (const d of [-1, 1]) { c.beginPath(); c.arc(cx + d * 64, 74, 27, 0, TAU); fs(c, BR, 4); c.beginPath(); c.arc(cx + d * 64, 74, 14, 0, TAU); c.fillStyle = LT; c.fill(); }
+  c.beginPath(); c.arc(cx, 146, 90, 0, TAU); fs(c, BR, 4);
+  drawFace(c, cx, 150, 170, -sway * .08);
+  c.restore();
+  // panic sweat
+  c.fillStyle = '#8fd0ff';
+  for (const d of [-1, 1]) for (let k = 0; k < 2; k++) {
+    const ph = (t * 4 + k / 2 + (d > 0 ? .25 : 0)) % 1, x = cx + d * (95 + ph * 50), y = 110 + ph * 30 - Math.sin(Math.PI * ph) * 35;
+    c.globalAlpha = 1 - ph; c.beginPath(); c.moveTo(x, y - 9); c.quadraticCurveTo(x + 6, y, x, y + 5); c.quadraticCurveTo(x - 6, y, x, y - 9); c.fill();
+  }
+  c.globalAlpha = 1; c.restore();
+  return { bottom: 'Bear market' };
+}},
 ];
 const popTints = [0, 1, 2, 3].map(() => { const x = document.createElement('canvas'); x.width = x.height = 400; return x; });
 let cur = TEMPLATES[0];
