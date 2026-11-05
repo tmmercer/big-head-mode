@@ -44,6 +44,8 @@ input[type=range]{width:100%;accent-color:var(--pink);height:28px}
 .bits{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:16px 0 6px}
 .bit{font:inherit;color:var(--ink);border:2.5px solid var(--ink);border-radius:12px;background:#fff;padding:8px 2px 7px;cursor:pointer;
   display:flex;flex-direction:column;align-items:center;gap:3px;font-weight:600;font-size:12.5px;line-height:1.1;-webkit-tap-highlight-color:transparent}
+.pack{margin:14px 0 0;font-size:16px;font-weight:800;display:flex;align-items:center;gap:8px}
+.pack::after{content:"";flex:1;height:3px;background:var(--ink);border-radius:3px;opacity:.15}
 .bit .e{font-size:25px;line-height:1}
 .bit[aria-pressed=true]{background:var(--teal);box-shadow:3px 3px 0 var(--ink);transform:translate(-2px,-2px)}
 .fields{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -88,6 +90,8 @@ footer{text-align:center;margin-top:30px;font-size:14px;opacity:.7}
       <h2><span class="num">2</span> Pick the bit</h2>
       <canvas id="preview" width="360" height="360" aria-label="Live preview"></canvas>
       <div class="bits" id="bits" role="group" aria-label="Animation"></div>
+      <h3 class="pack">💼 Strategy Manager pack</h3>
+      <div class="bits" id="bits2" role="group" aria-label="Strategy Manager animations"></div>
       <div class="fields">
         <div><label class="field" for="top">Top text</label><input id="top" type="text" maxlength="60" placeholder="optional"></div>
         <div><label class="field" for="bottom">Bottom text</label><input id="bottom" type="text" maxlength="60" placeholder="optional"></div>
@@ -483,6 +487,151 @@ const TEMPLATES = [
   c.globalAlpha = 1;
   return { bottom: 'Vibe check' };
 }},
+/* ----- Strategy Manager pack ----- */
+{ id: 'stonks', pack: 'strategy', name: 'Up & To The Right', e: '📈', frames: 32, draw(c, t) {
+  c.fillStyle = '#f4f7fb'; c.fillRect(0, 0, W, W);
+  c.strokeStyle = '#d5e2f2'; c.lineWidth = 1.5; const go = t * 40;
+  for (let x = -go; x < W + 40; x += 40) line(c, x, 0, x, W);
+  for (let y = 0; y < W; y += 40) line(c, 0, y, W, y);
+  c.font = '800 22px "Bricolage Grotesque", sans-serif'; c.textAlign = 'center';
+  for (let i = 0; i < 10; i++) {
+    const loops = 1 + Math.floor(rnd(i + .2) * 2), fr = (rnd(i) + t * loops) % 1;
+    c.fillStyle = `rgba(24,178,107,${.25 + .35 * Math.sin(Math.PI * fr)})`; c.fillText('$', 20 + rnd(i + .6) * 320, W + 15 - fr * (W + 30));
+  }
+  const P = [[40, 305], [80, 265], [115, 285], [165, 205], [200, 228], [255, 140], [280, 160], [305, 95]];
+  const seg = []; let L = 0;
+  for (let i = 1; i < P.length; i++) { const l = Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1]); seg.push(l); L += l; }
+  let rem = Math.min(1, t / 0.75) * L, tip = P[0], dir = [1, -1], drawn = [P[0]];
+  for (let i = 1; i < P.length; i++) {
+    const l = seg[i - 1], a = P[i - 1], b = P[i]; dir = [(b[0] - a[0]) / l, (b[1] - a[1]) / l];
+    if (rem >= l) { drawn.push(b); tip = b; rem -= l; } else { tip = [a[0] + dir[0] * rem, a[1] + dir[1] * rem]; drawn.push(tip); break; }
+  }
+  c.fillStyle = 'rgba(24,178,107,.16)'; c.beginPath(); c.moveTo(P[0][0], W);
+  drawn.forEach(p => c.lineTo(p[0], p[1])); c.lineTo(tip[0], W); c.closePath(); c.fill();
+  c.strokeStyle = '#18b26b'; c.lineWidth = 10; c.lineJoin = 'round'; c.lineCap = 'round';
+  c.beginPath(); drawn.forEach((p, i) => i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1])); c.stroke();
+  const ah = [tip[0] + dir[0] * 66, tip[1] + dir[1] * 66], nx = -dir[1], ny = dir[0];
+  c.fillStyle = '#18b26b'; c.beginPath(); c.moveTo(ah[0] + dir[0] * 26, ah[1] + dir[1] * 26);
+  c.lineTo(ah[0] + nx * 18, ah[1] + ny * 18); c.lineTo(ah[0] - nx * 18, ah[1] - ny * 18); c.closePath(); c.fill();
+  drawFace(c, tip[0], tip[1], 112, Math.sin(TAU * t * 2) * 0.12);
+  return { bottom: 'Up and to the right' };
+}},
+{ id: 'pivot', pack: 'strategy', name: 'The Pivot', e: '🔄', frames: 30, draw(c, t) {
+  c.fillStyle = '#ece6da'; c.fillRect(0, 0, W, W);
+  c.fillStyle = '#9fd8ff'; c.fillRect(26, 26, 110, 96); c.strokeStyle = '#fff'; c.lineWidth = 7; c.strokeRect(26, 26, 110, 96); line(c, 81, 26, 81, 122);
+  c.fillStyle = '#b9a58a'; c.fillRect(0, 300, W, 60);
+  const sxRaw = Math.cos(TAU * t * 2), sx = Math.sign(sxRaw || 1) * Math.max(Math.abs(sxRaw), 0.08);
+  c.strokeStyle = 'rgba(26,20,35,.25)'; c.lineWidth = 5; c.lineCap = 'round';
+  for (let k = 0; k < 3; k++) { const a = t * TAU * 2 + k * 2.1; c.beginPath(); c.ellipse(180, 205, 120, 30, 0, a, a + .9); c.stroke(); }
+  c.strokeStyle = '#2b2b33'; c.lineWidth = 9;
+  for (const d of [-1, -.4, .4, 1]) line(c, 180, 318, 180 + d * 62, 334 + Math.abs(d) * -6);
+  c.fillStyle = '#2b2b33'; for (const d of [-1, -.4, .4, 1]) { c.beginPath(); c.arc(180 + d * 62, 336 - Math.abs(d) * 6, 8, 0, TAU); c.fill(); }
+  c.fillStyle = '#8d8d99'; c.fillRect(173, 262, 14, 58);
+  c.save(); c.translate(180, 0); c.scale(sx, 1);
+  c.fillStyle = '#2b2b33'; roundRect(c, -66, 150, 132, 80, 20); c.fill();
+  c.fillStyle = '#26365e'; roundRect(c, -60, 168, 120, 102, 30); c.fill();
+  if (sx > 0) {
+    c.fillStyle = '#fff'; c.beginPath(); c.moveTo(-20, 168); c.lineTo(20, 168); c.lineTo(0, 214); c.closePath(); c.fill();
+    c.fillStyle = '#e63946'; c.beginPath(); c.moveTo(-7, 172); c.lineTo(7, 172); c.lineTo(11, 226); c.lineTo(0, 242); c.lineTo(-11, 226); c.closePath(); c.fill();
+  }
+  c.restore();
+  c.fillStyle = '#1e1e26'; c.beginPath(); c.ellipse(180, 266, 74, 15, 0, 0, TAU); c.fill();
+  if (sx > 0) drawFace(c, 180, 104, 190, 0, sx, 1);
+  else { c.fillStyle = '#3a2618'; c.beginPath(); c.ellipse(180, 104, 66 * -sx, 95, 0, 0, TAU); c.fill(); }
+  return { bottom: 'PIVOT!' };
+}},
+{ id: 'matrix', pack: 'strategy', name: '2×2 Matrix', e: '🧭', frames: 40, draw(c, t) {
+  c.fillStyle = '#fbfbf7'; c.fillRect(0, 0, W, W);
+  const order = [[0, 1], [0, 0], [1, 1], [1, 0]], q = Math.floor(t * 4), u = t * 4 - q;
+  const [qc, qr] = order[q], [nc, nr] = order[(q + 1) % 4];
+  c.fillStyle = 'rgba(255,210,63,.4)'; c.fillRect(qc * 180 + 4, qr * 180 + 4, 172, 172);
+  c.strokeStyle = '#1a1423'; c.lineWidth = 4; c.lineCap = 'round';
+  line(c, 16, 180, 340, 180); line(c, 180, 344, 180, 18);
+  c.fillStyle = '#1a1423';
+  c.beginPath(); c.moveTo(348, 180); c.lineTo(334, 172); c.lineTo(334, 188); c.fill();
+  c.beginPath(); c.moveTo(180, 10); c.lineTo(172, 24); c.lineTo(188, 24); c.fill();
+  c.font = '800 11px "Bricolage Grotesque", sans-serif'; c.textAlign = 'left'; c.fillText('IMPACT', 190, 22); c.textAlign = 'right'; c.fillText('EFFORT', 330, 197);
+  c.font = '800 15px "Bricolage Grotesque", sans-serif'; c.textAlign = 'center'; c.fillStyle = '#2b59c3';
+  [['QUICK WINS', 0, 0], ['BIG BETS', 1, 0], ['FILL-INS', 0, 1], ['MONEY PITS', 1, 1]].forEach(([s, col, row]) => c.fillText(s, col * 180 + 90, row ? 224 : 166));
+  const cx = col => 90 + col * 180, cy = row => row ? 286 : 84;
+  let x, y;
+  if (u < .6) { x = cx(qc); y = cy(qr) - Math.abs(Math.sin(u / .6 * Math.PI * 2)) * 10; }
+  else { const k = (u - .6) / .4, e = k * k * (3 - 2 * k); x = cx(qc) + (cx(nc) - cx(qc)) * e; y = cy(qr) + (cy(nr) - cy(qr)) * e - Math.sin(Math.PI * k) * 70; }
+  if (q === 3) {
+    c.fillStyle = '#ffb800';
+    for (let i = 0; i < 6; i++) { const a = i / 6 * TAU + t * 3, r = 66 + 6 * Math.sin(TAU * t * 8 + i); c.beginPath(); c.arc(cx(1) + Math.cos(a) * r, cy(0) + Math.sin(a) * r, 5, 0, TAU); c.fill(); }
+  }
+  drawFace(c, x, y, 112, (u >= .6 ? Math.sin(Math.PI * (u - .6) / .4) * .4 : 0));
+}},
+{ id: 'deck', pack: 'strategy', name: 'Exec Deck', e: '📊', frames: 36, draw(c, t, f) {
+  c.fillStyle = '#1f2230'; c.fillRect(0, 0, W, W);
+  c.fillStyle = '#f7f7fb'; c.fillRect(22, 22, 316, 200); c.fillStyle = '#555a6e'; c.fillRect(176, 222, 8, 26);
+  const s = Math.floor(t * 3), u = t * 3 - s, grow = Math.min(1, u * 2.2), eg = 1 - Math.pow(1 - grow, 3);
+  c.fillStyle = '#1a1423'; c.font = '800 21px "Bricolage Grotesque", sans-serif'; c.textAlign = 'left';
+  c.fillText(['Q4 SYNERGIES', 'ROADMAP 2027', 'OUR NORTH STAR'][s], 40, 56);
+  c.fillStyle = '#ff4f8b'; c.fillRect(40, 64, 60, 4);
+  const cols = ['#2b59c3', '#ff4f8b', '#ffd23f', '#2ec4b6'];
+  if (s === 0) {
+    const parts = [.4, .25, .2, .15]; let a = -Math.PI / 2;
+    parts.forEach((p, i) => { const sw = p * TAU * eg; c.fillStyle = cols[i]; c.beginPath(); c.moveTo(130, 145); c.arc(130, 145, 58, a, a + sw); c.closePath(); c.fill(); a += sw; });
+    c.font = '600 13px "Bricolage Grotesque", sans-serif'; c.fillStyle = '#1a1423';
+    ['Synergy', 'Alignment', 'Leverage', 'Vibes'].forEach((l, i) => { c.fillStyle = cols[i]; c.fillRect(214, 104 + i * 22, 12, 12); c.fillStyle = '#1a1423'; c.fillText(l, 232, 115 + i * 22); });
+  } else if (s === 1) {
+    [.35, .55, .75, 1].forEach((h, i) => { const bh = 120 * h * eg; c.fillStyle = cols[i]; c.fillRect(48 + i * 50, 205 - bh, 34, bh); });
+    c.fillStyle = '#1a1423'; c.font = '600 12px "Bricolage Grotesque", sans-serif'; c.textAlign = 'center';
+    ['Q1', 'Q2', 'Q3', 'Q4'].forEach((l, i) => c.fillText(l, 65 + i * 50, 218));
+  } else {
+    c.save(); c.translate(180, 145); c.rotate(t * TAU); c.scale(.6 + .4 * eg, .6 + .4 * eg); c.fillStyle = '#ffb800'; c.beginPath();
+    for (let i = 0; i < 10; i++) { const r = i % 2 ? 26 : 62, a = i / 10 * TAU - Math.PI / 2; c.lineTo(Math.cos(a) * r, Math.sin(a) * r); }
+    c.closePath(); c.fill(); c.restore();
+  }
+  const lx = 190 + Math.sin(TAU * t * 2) * 70 + (rnd(f) - .5) * 6, ly = 140 + Math.cos(TAU * t * 3) * 35 + (rnd(f + .4) - .5) * 6;
+  c.strokeStyle = 'rgba(255,40,60,.35)'; c.lineWidth = 2; line(c, 236, 318, lx, ly);
+  const lg = c.createRadialGradient(lx, ly, 0, lx, ly, 12); lg.addColorStop(0, '#fff'); lg.addColorStop(.35, '#ff2040'); lg.addColorStop(1, 'rgba(255,32,64,0)');
+  c.fillStyle = lg; c.beginPath(); c.arc(lx, ly, 12, 0, TAU); c.fill();
+  c.fillStyle = '#26365e'; roundRect(c, 236, 316, 104, 70, 28); c.fill();
+  c.fillStyle = '#fff'; c.beginPath(); c.moveTo(274, 316); c.lineTo(302, 316); c.lineTo(288, 344); c.closePath(); c.fill();
+  drawFace(c, 288, 252 + Math.sin(TAU * t * 2) * 3, 150, Math.sin(TAU * t) * .06);
+  return { bottom: 'Take it offline' };
+}},
+{ id: 'sticky', pack: 'strategy', name: 'Sticky Notes', e: '🗒️', frames: 40, draw(c, t) {
+  c.fillStyle = '#c99a62'; c.fillRect(0, 0, W, W);
+  c.fillStyle = 'rgba(90,55,20,.18)'; for (let i = 0; i < 80; i++) { c.beginPath(); c.arc(rnd(i) * W, rnd(i + .5) * W, 1.5 + rnd(i + .2) * 2, 0, TAU); c.fill(); }
+  drawFace(c, 180, 182, 214, Math.sin(TAU * t * 2) * .06);
+  const notes = [['SYNERGY', 52, 52], ['KPIs', 308, 52], ['ALIGN', 46, 150], ['OKRs', 314, 152], ['LEVERAGE', 52, 250], ['BAND-\nWIDTH', 308, 250], ['Q4 PLAN', 120, 34], ['PIVOT', 240, 34]];
+  const cols = ['#fff176', '#ff9ec7', '#8fd8ff', '#a6f0a6'];
+  notes.forEach(([txt, x, y], i) => {
+    const a = .04 + i * .085; if (t < a) return;
+    const k = Math.min(1, (t - a) / .08), s = 1 + 2.7 * Math.pow(k - 1, 3) + 1.7 * Math.pow(k - 1, 2);
+    c.save(); c.translate(x, y); c.rotate((rnd(i + .3) - .5) * .35); c.scale(s, s);
+    c.fillStyle = 'rgba(0,0,0,.2)'; c.fillRect(-35, -25, 74, 58);
+    c.fillStyle = cols[i % 4]; c.fillRect(-38, -29, 74, 58);
+    c.fillStyle = '#1a1423'; c.font = '800 13px "Bricolage Grotesque", sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    const ls = txt.split('\n'); ls.forEach((l, j) => c.fillText(l, -1, (j - (ls.length - 1) / 2) * 15));
+    c.fillStyle = '#e63946'; c.beginPath(); c.arc(-1, -23, 4, 0, TAU); c.fill();
+    c.restore();
+  });
+  c.textBaseline = 'alphabetic';
+  return { bottom: "Let's circle back" };
+}},
+{ id: 'idea', pack: 'strategy', name: 'Big Idea', e: '💡', frames: 30, draw(c, t) {
+  const on = t >= .42 || (t > .3 && Math.floor(t * 60) % 2 === 0);
+  c.fillStyle = on ? '#ffe27a' : '#1d2340'; c.fillRect(0, 0, W, W);
+  if (on) {
+    c.save(); c.translate(180, 60); c.rotate(t * TAU / 6); c.fillStyle = 'rgba(255,255,255,.45)';
+    for (let i = 0; i < 12; i++) { c.beginPath(); c.moveTo(0, 0); c.arc(0, 0, 520, i * TAU / 12, i * TAU / 12 + TAU / 24); c.closePath(); c.fill(); }
+    c.restore();
+  }
+  drawFace(c, 180, 234, 236, Math.sin(TAU * t) * .05);
+  if (!on) { c.fillStyle = 'rgba(10,12,40,.5)'; c.fillRect(0, 0, W, W); }
+  if (on) { const g = c.createRadialGradient(180, 56, 10, 180, 56, 90); g.addColorStop(0, 'rgba(255,255,220,.95)'); g.addColorStop(1, 'rgba(255,255,220,0)'); c.fillStyle = g; c.beginPath(); c.arc(180, 56, 90, 0, TAU); c.fill(); }
+  c.fillStyle = on ? '#fff8b0' : '#c9cdd8'; c.strokeStyle = '#1a1423'; c.lineWidth = 4;
+  c.beginPath(); c.arc(180, 54, 34, 0, TAU); c.fill(); c.stroke();
+  c.strokeStyle = on ? '#ff8a3d' : '#7a7f8f'; c.lineWidth = 3; c.beginPath(); c.moveTo(170, 88); c.lineTo(170, 62); c.lineTo(176, 54); c.lineTo(184, 62); c.lineTo(190, 54); c.lineTo(190, 88); c.stroke();
+  c.fillStyle = '#8d8d99'; c.strokeStyle = '#1a1423'; c.lineWidth = 3;
+  roundRect(c, 164, 86, 32, 10, 3); c.fill(); c.stroke(); roundRect(c, 167, 96, 26, 10, 3); c.fill(); c.stroke();
+  return on ? { bottom: "Let's double-click on that" } : {};
+}},
 ];
 const popTints = [0, 1, 2, 3].map(() => { const x = document.createElement('canvas'); x.width = x.height = 400; return x; });
 let cur = TEMPLATES[0];
@@ -491,8 +640,8 @@ const bitsEl = $('bits');
 TEMPLATES.forEach(tp => {
   const b = document.createElement('button'); b.type = 'button'; b.className = 'bit';
   b.setAttribute('aria-pressed', tp === cur); b.innerHTML = `<span class="e">${tp.e}</span><span>${tp.name}</span>`;
-  b.onclick = () => { cur = tp; start = performance.now(); bitsEl.querySelectorAll('.bit').forEach(x => x.setAttribute('aria-pressed', x === b)); };
-  bitsEl.appendChild(b);
+  b.onclick = () => { cur = tp; start = performance.now(); document.querySelectorAll('.bit').forEach(x => x.setAttribute('aria-pressed', x === b)); };
+  (tp.pack === 'strategy' ? $('bits2') : bitsEl).appendChild(b);
 });
 
 /* ---------- captions + render ---------- */
