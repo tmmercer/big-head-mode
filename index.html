@@ -153,9 +153,9 @@ function drawEditor() {
   c.fillStyle = '#2a2333'; c.fillRect(0, 0, 600, 600);
   c.save(); drawSrc(c, 300, 300); c.restore();
   c.save(); c.fillStyle = 'rgba(26,16,36,.62)'; c.beginPath(); c.rect(0, 0, 600, 600);
-  c.ellipse(300, 300, 168, 200, 0, 0, TAU); c.fill('evenodd'); c.restore();
+  c.ellipse(300, 300, 140, 200, 0, 0, TAU); c.fill('evenodd'); c.restore();
   c.lineWidth = 5; c.setLineDash([18, 12]); c.strokeStyle = '#ffd23f';
-  c.beginPath(); c.ellipse(300, 300, 168, 200, 0, 0, TAU); c.stroke();
+  c.beginPath(); c.ellipse(300, 300, 140, 200, 0, 0, TAU); c.stroke();
   const ey = 100 + st.eye * 400;
   c.setLineDash([10, 8]); c.lineWidth = 3; c.strokeStyle = '#2ec4b6';
   c.beginPath(); c.moveTo(140, ey); c.lineTo(460, ey); c.stroke(); c.setLineDash([]);
@@ -169,8 +169,8 @@ function updateFace() {
   c.clearRect(0, 0, 400, 400);
   c.save(); drawSrc(c, 200, 200); c.restore();
   c.save(); c.globalCompositeOperation = 'destination-in';
-  c.translate(200, 200); c.scale(1, 200 / 168);
-  const g = c.createRadialGradient(0, 0, 0, 0, 0, 168);
+  c.translate(200, 200); c.scale(1, 200 / 140);
+  const g = c.createRadialGradient(0, 0, 0, 0, 0, 140);
   g.addColorStop(0, '#000'); g.addColorStop(.9, '#000'); g.addColorStop(1, 'rgba(0,0,0,0)');
   c.fillStyle = g; c.fillRect(-200, -240, 400, 480); c.restore();
 }
@@ -266,7 +266,7 @@ const TEMPLATES = [
   c.fillStyle = 'rgba(255,255,255,.18)';
   for (let i = 0; i < 6; i++) c.fillRect(0, i * 64 + 20, W, 26);
   const h = 290, cy = 182; drawFace(c, 180, cy, h);
-  const gw = 0.86 * h, p = gw / 24, eyePx = cy - h / 2 + st.eye * h;
+  const gw = 0.68 * h, p = gw / 24, eyePx = cy - h / 2 + st.eye * h;
   const final = eyePx - 2.3 * p, k = Math.min(1, t / 0.5);
   const y = -6 * p + (final + 6 * p) * k, x = 180 - gw / 2;
   c.fillStyle = '#000'; c.fillRect(x, y, gw, p + .5);
@@ -419,7 +419,7 @@ const TEMPLATES = [
   drawFace(c, 180, cy, h);
   const fl = 0.75 + rnd(f) * 0.25;
   for (const d of [-1, 1]) {
-    const ex = 180 + d * h * .17, tx = 180 + d * 260, ty = ey + 300;
+    const ex = 180 + d * h * .15, tx = 180 + d * 260, ty = ey + 300;
     c.lineCap = 'round';
     [[34 * fl, 'rgba(255,0,40,.25)'], [16 * fl, '#ff2040'], [6, '#fff']].forEach(([w, col]) => { c.strokeStyle = col; c.lineWidth = w; line(c, ex, ey, tx, ty); });
     const rg = c.createRadialGradient(ex, ey, 0, ex, ey, 46 * fl); rg.addColorStop(0, '#fff'); rg.addColorStop(.3, 'rgba(255,40,60,.9)'); rg.addColorStop(1, 'rgba(255,0,40,0)');
@@ -436,7 +436,7 @@ const TEMPLATES = [
   tc.globalCompositeOperation = 'source-atop'; tc.fillStyle = 'rgba(60,110,255,.28)'; tc.fillRect(0, 0, 400, 400); tc.globalCompositeOperation = 'source-over';
   drawFace(c, 180, cy, h, Math.sin(TAU * t) * 0.04, 1, 1, tint);
   for (const d of [-1, 1]) {
-    const ex = 180 + d * h * .17;
+    const ex = 180 + d * h * .15;
     c.strokeStyle = 'rgba(120,190,255,.7)'; c.lineWidth = 7; line(c, ex, ey + 14, ex + d * 4, W);
     for (let k = 0; k < 5; k++) {
       const ph = (t * 2 + k / 5) % 1, y = ey + 14 + ph * (W - ey);
@@ -518,7 +518,7 @@ function caption(c, text, isTop) {
   }
   c.font = font(size); c.textAlign = 'center'; c.textBaseline = 'alphabetic'; c.lineJoin = 'round';
   c.lineWidth = Math.max(3, size / 6); c.strokeStyle = '#000'; c.fillStyle = '#fff';
-  const lh = size * 1.05; let y = isTop ? 12 + size * 0.92 : W - 14 - (lines.length - 1) * lh;
+  const lh = size * 1.05; let y = isTop ? 12 + size * 0.92 : W - 21 - (lines.length - 1) * lh;
   for (const l of lines) { c.strokeText(l, 180, y); c.fillText(l, 180, y); y += lh; }
 }
 function render(c, t, tp) {
@@ -526,6 +526,15 @@ function render(c, t, tp) {
   c.save(); const d = tp.draw(c, t, f) || {}; c.restore();
   caption(c, topIn.value || d.top, true);
   caption(c, botIn.value || d.bottom, false);
+  watermark(c);
+}
+function watermark(c) {
+  c.save();
+  c.font = '800 12px "Bricolage Grotesque", system-ui, sans-serif';
+  c.textAlign = 'right'; c.textBaseline = 'bottom'; c.lineJoin = 'round';
+  c.lineWidth = 3; c.strokeStyle = 'rgba(0,0,0,.55)'; c.fillStyle = 'rgba(255,255,255,.9)';
+  c.strokeText('T$ GIF Creator', W - 7, W - 5); c.fillText('T$ GIF Creator', W - 7, W - 5);
+  c.restore();
 }
 
 const speedIn = $('speed');
