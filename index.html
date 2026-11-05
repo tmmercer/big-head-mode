@@ -1033,6 +1033,76 @@ const TEMPLATES = [
   c.globalAlpha = 1; c.restore();
   return { bottom: 'Bear market' };
 }},
+{ id: 'bull', pack: 'strategy', name: 'Bull Market', e: '🐂', frames: 32, draw(c, t, f) {
+  c.fillStyle = '#0c1a14'; c.fillRect(0, 0, W, W);
+  c.strokeStyle = 'rgba(120,200,160,.12)'; c.lineWidth = 1;
+  for (let x = 0; x < W; x += 36) line(c, x, 26, x, W);
+  for (let y = 26; y < W; y += 36) line(c, 0, y, W, y);
+  // rising candlestick chart: scrolls left while the camera follows it up, so the loop is seamless
+  const N = 8, sp = 30, slope = 21, u = t * N, mid = [];
+  for (let i = -2; i < 16 + N; i++) {
+    const k = i - u, x = 14 + k * sp; if (x < -20 || x > W + 20) continue;
+    const r = ((i % N) + N) % N, y = 312 - k * slope + (rnd(r + 40) - .5) * 26;
+    const down = rnd(r + 40.5) > .78, bh = 10 + rnd(r + 40.3) * 22;
+    const o = down ? y - bh * .3 : y + bh * .5, cl = down ? y + bh * .4 : y - bh * .5;
+    const colr = down ? '#ff4d5e' : '#2fd67a';
+    c.strokeStyle = colr; c.lineWidth = 2; line(c, x, Math.min(o, cl) - 8 - rnd(r + 40.7) * 10, x, Math.max(o, cl) + 8 + rnd(r + 40.9) * 10);
+    c.fillStyle = colr; c.fillRect(x - 8, Math.min(o, cl), 16, Math.abs(cl - o));
+    mid.push([x, y]);
+  }
+  c.strokeStyle = 'rgba(47,214,122,.55)'; c.lineWidth = 3; c.beginPath(); mid.forEach(([x, y], i) => i ? c.lineTo(x, y) : c.moveTo(x, y)); c.stroke();
+  // pulsing up arrow
+  const pa = .35 + .3 * (.5 + .5 * Math.sin(TAU * t * 4));
+  c.fillStyle = `rgba(47,214,122,${pa})`; c.beginPath();
+  c.moveTo(315, 40); c.lineTo(350, 80); c.lineTo(330, 80); c.lineTo(330, 138); c.lineTo(300, 138); c.lineTo(300, 80); c.lineTo(280, 80); c.closePath(); c.fill();
+  // ticker tape
+  c.fillStyle = '#0d2a1c'; c.fillRect(0, 0, W, 26);
+  const tape = 'STONKS ▲ 69.0%     VIBES ▲ 42.0%     T$ ▲ 99.9%     SYNERGY ▲ 12.3%     MORALE ▲ 88.8%     ';
+  c.font = '800 14px "Bricolage Grotesque", sans-serif'; c.textAlign = 'left'; c.textBaseline = 'middle'; c.fillStyle = '#2fd67a';
+  const tw = c.measureText(tape).width, tx = -t * tw;
+  for (let x = tx; x < W; x += tw) c.fillText(tape, x, 14);
+  c.textBaseline = 'alphabetic';
+  // flying cash (behind the bull)
+  for (let i = 0; i < 10; i++) {
+    const loops = 1 + Math.floor(rnd(i + 50.1) * 2), fr = (rnd(i + 50.2) + t * loops) % 1;
+    const x = 10 + rnd(i + 50.3) * 340 + Math.sin(TAU * (fr + rnd(i + 50))) * 14, y = 30 + fr * 360;
+    c.save(); c.translate(x, y); c.rotate(rnd(i + 50.6) * TAU + t * TAU * loops); c.scale(1, .55 + .45 * Math.cos(TAU * (t * loops * 2 + rnd(i + 50.8))));
+    c.fillStyle = '#7fd18b'; c.strokeStyle = '#2d7a3e'; c.lineWidth = 2; c.fillRect(-15, -8, 30, 16); c.strokeRect(-15, -8, 30, 16);
+    c.fillStyle = '#2d7a3e'; c.font = '800 11px "Bricolage Grotesque", sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('$', 0, .5);
+    c.restore();
+  }
+  c.textBaseline = 'alphabetic';
+  // the bull
+  const bob = Math.abs(Math.sin(TAU * t * 2)), cx = 180, BR = '#4a2f22', LT = '#b98a62';
+  c.save(); c.translate(180, 372); c.scale(.8, .8); c.translate(-180, -372 + bob * -10);
+  for (const d of [-1, 1]) { c.beginPath(); c.ellipse(cx + d * 42, 344, 28, 18, 0, 0, TAU); fs(c, BR, 4);
+    c.beginPath(); c.ellipse(cx + d * 42, 352, 22, 9, 0, 0, TAU); fs(c, '#2a2a30', 3); line(c, cx + d * 42, 344, cx + d * 42, 360); }
+  c.beginPath(); c.ellipse(cx, 286, 82, 70, 0, 0, TAU); fs(c, BR, 4);
+  c.beginPath(); c.ellipse(cx, 298, 48, 46, 0, 0, TAU); c.fillStyle = LT; c.fill();
+  for (const d of [-1, 1]) {
+    const pump = .5 + .5 * Math.sin(TAU * t * 4 + (d > 0 ? Math.PI : 0));
+    const a = Math.PI * (.66 + .1 * pump), sx = cx + d * 64, sy = 250, len = 74 + 20 * pump;
+    const ex = sx + d * Math.sin(a) * len, ey = sy + Math.cos(a) * len;
+    c.lineCap = 'round'; c.strokeStyle = INK; c.lineWidth = 36; line(c, sx, sy, ex, ey);
+    c.strokeStyle = BR; c.lineWidth = 29; line(c, sx, sy, ex, ey);
+    c.beginPath(); c.arc(ex, ey, 18, 0, TAU); fs(c, '#2a2a30', 4);
+    c.strokeStyle = '#55555f'; c.lineWidth = 3; line(c, ex, ey - 16, ex, ey + 16);
+  }
+  for (const d of [-1, 1]) {
+    c.beginPath(); c.moveTo(cx + d * 60, 98); c.quadraticCurveTo(cx + d * 150, 92, cx + d * 132, 20); c.quadraticCurveTo(cx + d * 124, 64, cx + d * 66, 72); c.closePath(); fs(c, '#f4ead2', 4);
+    c.save(); c.translate(cx + d * 92, 112); c.rotate(d * .5); c.beginPath(); c.ellipse(0, 0, 26, 13, 0, 0, TAU); fs(c, BR, 4);
+    c.beginPath(); c.ellipse(0, 0, 14, 6, 0, 0, TAU); c.fillStyle = LT; c.fill(); c.restore();
+  }
+  c.beginPath(); c.arc(cx, 146, 90, 0, TAU); fs(c, BR, 4);
+  drawFace(c, cx, 150, 170, Math.sin(TAU * t * 2) * .06);
+  // victory sparkles
+  c.fillStyle = '#ffd23f';
+  for (let i = 0; i < 6; i++) { const a = i / 6 * TAU + t * TAU, r = 118 + 8 * Math.sin(TAU * t * 4 + i), s = 6 + 3 * Math.sin(TAU * t * 4 + i * 2);
+    const x = cx + Math.cos(a) * r, y = 150 + Math.sin(a) * r * .8;
+    c.beginPath(); c.moveTo(x, y - s * 2); c.quadraticCurveTo(x, y, x + s * 2, y); c.quadraticCurveTo(x, y, x, y + s * 2); c.quadraticCurveTo(x, y, x - s * 2, y); c.quadraticCurveTo(x, y, x, y - s * 2); c.fill(); }
+  c.restore();
+  return { bottom: 'Bull market' };
+}},
 /* ----- Office Romance pack ----- */
 { id: 'teamsdm', pack: 'romance', name: 'Teams DM', e: '💬', frames: 60, draw(c, t) {
   const g = c.createLinearGradient(0, 0, 0, W); g.addColorStop(0, '#ffd1e6'); g.addColorStop(1, '#ff9cc7'); c.fillStyle = g; c.fillRect(0, 0, W, W);
