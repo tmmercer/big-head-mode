@@ -10,6 +10,7 @@
 <style>
 :root{--ink:#1a1423;--cream:#fff3d6;--pink:#ff4f8b;--yellow:#ffd23f;--teal:#2ec4b6;--paper:#fff}
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 body{margin:0;background:var(--cream);color:var(--ink);font-family:'Bricolage Grotesque',system-ui,sans-serif;
   background-image:radial-gradient(#f7d397 1.5px,transparent 1.6px);background-size:22px 22px}
 .wrap{max-width:1040px;margin:0 auto;padding:20px 16px 48px}
@@ -44,6 +45,7 @@ input[type=range]{width:100%;accent-color:var(--pink);height:28px}
 .bits{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:16px 0 6px}
 .bit{font:inherit;color:var(--ink);border:2.5px solid var(--ink);border-radius:12px;background:#fff;padding:8px 2px 7px;cursor:pointer;
   display:flex;flex-direction:column;align-items:center;gap:3px;font-weight:600;font-size:12.5px;line-height:1.1;-webkit-tap-highlight-color:transparent}
+.detect{text-align:center;font-weight:700;font-size:15px;margin:0 0 4px;min-height:1.2em}
 .faces{display:flex;gap:12px;overflow-x:auto;padding:6px 6px 10px;margin:0 -6px}
 .fthumb{position:relative;flex:none}
 .fthumb .pick{width:66px;height:66px;border-radius:50%;border:3px solid var(--ink);background:var(--cream);padding:0;overflow:hidden;cursor:pointer;display:block}
@@ -96,11 +98,12 @@ footer{text-align:center;margin-top:30px;font-size:14px;opacity:.7}
         <div class="faces" id="faces"></div>
       </div>
       <div class="editor-box"><canvas id="editor" width="600" height="600" aria-label="Drag to position the face inside the oval"></canvas></div>
+      <p class="detect" id="detectNote" aria-live="polite"></p>
       <p class="hint">Drag to move · pinch or slide to zoom · fit the face in the oval</p>
       <div class="slider"><label for="zoom">Zoom</label><input id="zoom" type="range" min="-1.5" max="3.2" step="0.01" value="0"></div>
       <div class="slider"><label for="tilt">Tilt</label><input id="tilt" type="range" min="-45" max="45" step="1" value="0"></div>
       <div class="slider"><label for="eye">Eye line</label><input id="eye" type="range" min="0.2" max="0.7" step="0.01" value="0.42"></div>
-      <div class="row"><button class="btn ghost" id="reset" type="button">↺ Reset position</button><button class="btn ghost" id="saveFace" type="button" hidden>💾 Save this face</button></div>
+      <div class="row"><button class="btn ghost" id="nextFace" type="button" hidden>👥 Next face</button><button class="btn ghost" id="reset" type="button">↺ Reset position</button><button class="btn ghost" id="saveFace" type="button" hidden>💾 Save this face</button></div>
       <p class="small" id="saveNote" style="text-align:center"></p>
     </section>
     <section class="card">
@@ -478,7 +481,8 @@ $('file').addEventListener('change', e => {
     const c = document.createElement('canvas');
     c.width = Math.round(im.naturalWidth * s); c.height = Math.round(im.naturalHeight * s);
     c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
-    src = c; URL.revokeObjectURL(url); resetView(); activeFace = null; renderFaces(); $('saveNote').textContent = 'Fit the face, then tap 💾 Save this face to keep it.';
+    src = c; URL.revokeObjectURL(url); resetView(); activeFace = null; renderFaces(); $('saveNote').textContent = 'Check the fit, then tap 💾 Save this face to keep it.';
+    autoFind(c);
   };
   im.onerror = () => { URL.revokeObjectURL(url); $('err').textContent = "Couldn't read that photo — try a JPG or PNG."; };
   im.src = url;
@@ -1215,6 +1219,63 @@ chips($('outfits'), OUTFITS, () => outfitSel, v => {
   outfitSel = v;
   if (cur.pack !== 'body') { const b = [...document.querySelectorAll('#bits3 .bit')][0]; if (b) b.click(); }
 });
+
+/* ---------- automatic face finding (runs fully in the browser) ---------- */
+let faceLib = null, detections = [], detIdx = 0;
+const setDetect = m => { $('detectNote').textContent = m; };
+function loadFaceLib() {
+  const script = u => new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = u; sc.onload = res; sc.onerror = () => rej(new Error(u)); document.head.appendChild(sc); });
+  if (!faceLib) faceLib = (async () => {
+    await Promise.all([script('vendor/face-api.js'), script('vendor/face-models.js')]);
+    const fa = window.faceapi, M = window.FACE_MODELS;
+    const load = (net, m) => {
+      const bin = atob(m.b64), u8 = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+      net.loadFromWeightMap(fa.tf.io.decodeWeights(u8.buffer, m.specs));
+    };
+    load(fa.nets.tinyFaceDetector, M.tiny); load(fa.nets.faceLandmark68TinyNet, M.lm);
+    return fa;
+  })();
+  return faceLib;
+}
+async function autoFind(photo) {
+  detections = []; $('nextFace').hidden = true;
+  setDetect('🔍 Looking for faces…');
+  try {
+    const fa = await loadFaceLib();
+    const m = Math.min(1, 900 / Math.max(photo.width, photo.height));
+    const dc = document.createElement('canvas'); dc.width = Math.round(photo.width * m); dc.height = Math.round(photo.height * m);
+    dc.getContext('2d').drawImage(photo, 0, 0, dc.width, dc.height);
+    const found = await fa.detectAllFaces(dc, new fa.TinyFaceDetectorOptions({ inputSize: 608, scoreThreshold: 0.35 })).withFaceLandmarks(true);
+    if (src !== photo) return; // a different photo was picked meanwhile
+    detections = found.map(r => ({ p: r.landmarks.positions.map(q => ({ x: q.x / m, y: q.y / m })), area: r.detection.box.area }))
+      .sort((a, b) => b.area - a.area);
+    if (!detections.length) { setDetect("Couldn't spot a face — drag it into the oval yourself."); return; }
+    detIdx = 0; applyDetection(detections[0]); updateNextBtn();
+    setDetect(detections.length > 1 ? `✨ Found ${detections.length} faces — tap Next face to switch` : '✨ Face found! Nudge it if needed.');
+  } catch (e) {
+    if (src === photo) setDetect('');
+  }
+}
+function updateNextBtn() {
+  const b = $('nextFace'); b.hidden = detections.length < 2;
+  b.textContent = `👥 Next face (${detIdx + 1}/${detections.length})`;
+}
+$('nextFace').onclick = () => { if (!detections.length) return; detIdx = (detIdx + 1) % detections.length; applyDetection(detections[detIdx]); updateNextBtn(); };
+function applyDetection(d) {
+  const P = d.p, avg = ids => ids.reduce((a, i) => ({ x: a.x + P[i].x / ids.length, y: a.y + P[i].y / ids.length }), { x: 0, y: 0 });
+  const L = avg([36, 37, 38, 39, 40, 41]), R = avg([42, 43, 44, 45, 46, 47]), chin = P[8];
+  const ang = Math.atan2(R.y - L.y, R.x - L.x), E = { x: (L.x + R.x) / 2, y: (L.y + R.y) / 2 };
+  const down = (chin.x - E.x) * -Math.sin(ang) + (chin.y - E.y) * Math.cos(ang);
+  if (down < 4) return;
+  const eyeY = 100 + st.eye * 400, S = (490 - eyeY) / down;
+  st.rot = Math.max(-Math.PI / 4, Math.min(Math.PI / 4, -ang));
+  st.zoom = clampZoom(S / baseScale);
+  const s = baseScale * st.zoom, vx = (E.x - src.width / 2) * s, vy = (E.y - src.height / 2) * s;
+  const cr = Math.cos(st.rot), sr = Math.sin(st.rot);
+  st.ox = -(vx * cr - vy * sr); st.oy = (eyeY - 300) - (vx * sr + vy * cr);
+  syncSliders(); refresh();
+}
 
 /* ---------- saved faces (stored only in this browser) ---------- */
 const FaceDB = (() => {
