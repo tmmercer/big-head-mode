@@ -122,6 +122,8 @@ footer{text-align:center;margin-top:30px;font-size:14px;opacity:.7}
       <div class="bits" id="bits3" role="group" aria-label="Full body animations"></div>
       <h3 class="pack">💼 Strategy Manager pack</h3>
       <div class="bits" id="bits2" role="group" aria-label="Strategy Manager animations"></div>
+      <h3 class="pack">💘 Office Romance pack</h3>
+      <div class="bits" id="bits4" role="group" aria-label="Office Romance animations"></div>
       <div class="fields">
         <div><label class="field" for="top">Top text</label><input id="top" type="text" maxlength="60" placeholder="optional"></div>
         <div><label class="field" for="bottom">Bottom text</label><input id="bottom" type="text" maxlength="60" placeholder="optional"></div>
@@ -215,6 +217,24 @@ function drawFace(c, x, y, h, rot = 0, sx = 1, sy = 1, img = face) {
   c.save(); c.translate(x, y); c.rotate(rot); c.scale(sx, sy);
   faceAt(c, h, img);
   c.restore();
+}
+function heart(c, x, y, s, fill, stroke) {
+  c.beginPath(); c.moveTo(x, y + s * .8);
+  c.bezierCurveTo(x - s * 1.6, y - s * .2, x - s * .8, y - s * 1.4, x, y - s * .5);
+  c.bezierCurveTo(x + s * .8, y - s * 1.4, x + s * 1.6, y - s * .2, x, y + s * .8); c.closePath();
+  c.fillStyle = fill; c.fill(); if (stroke) { c.lineWidth = Math.max(2, s * .15); c.strokeStyle = stroke; c.stroke(); }
+}
+function floatHearts(c, t, n, x0, x1, yB, color, alpha = 1, speed = 1) {
+  for (let i = 0; i < n; i++) {
+    const loops = speed * (1 + Math.floor(rnd(i + .11) * 2)), fr = (rnd(i + .21) + t * loops) % 1;
+    const y = yB + 15 - fr * (yB + 30), x = x0 + rnd(i + .31) * (x1 - x0) + Math.sin(TAU * (fr + rnd(i))) * 8;
+    c.globalAlpha = alpha * Math.min(1, fr * 8, (1 - fr) * 8); heart(c, x, y, 6 + rnd(i + .41) * 8, color);
+  }
+  c.globalAlpha = 1;
+}
+function faceCircle(c, x, y, r, bg) {
+  c.save(); c.beginPath(); c.arc(x, y, r, 0, TAU); c.clip(); c.fillStyle = bg; c.fillRect(x - r, y - r, r * 2, r * 2);
+  const prev = hatOK; hatOK = false; drawFace(c, x, y + r * .18, r * 2.5); hatOK = prev; c.restore();
 }
 function faceAt(c, h, img = face) {
   if (hatOK) drawHair(c, h, true);
@@ -1009,6 +1029,166 @@ const TEMPLATES = [
   c.globalAlpha = 1; c.restore();
   return { bottom: 'Bear market' };
 }},
+/* ----- Office Romance pack ----- */
+{ id: 'teamsdm', pack: 'romance', name: 'Teams DM', e: '💬', frames: 60, draw(c, t) {
+  const g = c.createLinearGradient(0, 0, 0, W); g.addColorStop(0, '#ffd1e6'); g.addColorStop(1, '#ff9cc7'); c.fillStyle = g; c.fillRect(0, 0, W, W);
+  floatHearts(c, t, 10, 0, W, W, '#ff4f8b', .5);
+  c.save(); c.shadowColor = 'rgba(80,20,60,.25)'; c.shadowBlur = 14; c.shadowOffsetY = 4;
+  c.beginPath(); roundRect(c, 14, 10, 332, 214, 14); c.fillStyle = '#fff'; c.fill(); c.restore();
+  c.save(); c.beginPath(); roundRect(c, 14, 10, 332, 214, 14); c.clip(); c.fillStyle = '#5b5fc7'; c.fillRect(14, 10, 332, 36); c.restore();
+  faceCircle(c, 36, 28, 12, '#ffd1e6');
+  c.fillStyle = '#18b26b'; c.beginPath(); c.arc(45, 37, 4.5, 0, TAU); c.fill(); c.strokeStyle = '#5b5fc7'; c.lineWidth = 2; c.stroke();
+  c.fillStyle = '#fff'; c.font = '800 14px "Bricolage Grotesque", sans-serif'; c.textAlign = 'left'; c.textBaseline = 'middle'; c.fillText('Your Crush', 56, 24);
+  c.font = '600 11px "Bricolage Grotesque", sans-serif'; c.fillStyle = 'rgba(255,255,255,.8)'; c.fillText('Available · typing with intent', 56, 37);
+  const msgs = [['hey :)', 0, .04], ['quick question', 0, .16], ['are you a Teams update?', 0, .3], ["bc you just restarted my heart", 0, .46], ['is this about the Q3 deck??', 1, .7]];
+  let slot = 0;
+  for (const [txt, me, at] of msgs) {
+    const y = 52 + slot * 34;
+    if (t < at - .08) break;
+    if (t < at) { // typing dots
+      const x0 = me ? 300 : 52; c.fillStyle = me ? '#e3e4fa' : '#f0f0f5'; c.beginPath(); roundRect(c, x0 - (me ? 30 : 0), y, 46, 26, 13); c.fill();
+      for (let k = 0; k < 3; k++) { c.fillStyle = `rgba(90,90,110,${.35 + .5 * (.5 + .5 * Math.sin(TAU * (t * 12 - k * .2)))})`; c.beginPath(); c.arc(x0 - (me ? 30 : 0) + 13 + k * 10, y + 13, 3.5, 0, TAU); c.fill(); }
+      break;
+    }
+    c.font = '600 13px "Bricolage Grotesque", sans-serif';
+    const w = c.measureText(txt).width + 22, pop = Math.min(1, (t - at) / .03);
+    const bx = me ? 336 - w : 52;
+    c.save(); c.translate(me ? bx + w : bx, y + 13); c.scale(pop, pop); c.translate(-(me ? bx + w : bx), -(y + 13));
+    c.fillStyle = me ? '#5b5fc7' : '#f0f0f5'; c.beginPath(); roundRect(c, bx, y, w, 26, 13); c.fill();
+    c.fillStyle = me ? '#fff' : INK; c.fillText(txt, bx + 11, y + 13.5); c.restore();
+    if (!me) faceCircle(c, 34, y + 13, 11, '#ffd1e6');
+    slot++;
+  }
+  c.textBaseline = 'alphabetic';
+  const blush = t > .46 ? 1 : 0;
+  drawFace(c, 180, 300 + Math.sin(TAU * t * 2) * 4, 150, Math.sin(TAU * t * 2) * .05);
+  if (blush) { c.fillStyle = 'rgba(255,60,120,.28)'; for (const d of [-1, 1]) { c.beginPath(); c.ellipse(180 + d * 34, 300 + 150 * (st.eye - .5) + 40, 16, 9, 0, 0, TAU); c.fill(); } }
+}},
+{ id: 'cameraon', pack: 'romance', name: 'Camera On', e: '📹', frames: 40, draw(c, t) {
+  c.fillStyle = '#1f1f24'; c.fillRect(0, 0, W, W);
+  c.save(); c.beginPath(); roundRect(c, 10, 10, 340, 230, 12); c.clip();
+  const g = c.createLinearGradient(0, 10, 0, 240); g.addColorStop(0, '#ffc2dc'); g.addColorStop(1, '#ff7ab0'); c.fillStyle = g; c.fillRect(10, 10, 340, 230);
+  c.fillStyle = 'rgba(255,255,255,.35)'; for (let i = 0; i < 9; i++) { c.beginPath(); c.arc(30 + rnd(i) * 300, 30 + rnd(i + .4) * 190, 8 + rnd(i + .8) * 22, 0, TAU); c.fill(); }
+  drawFace(c, 180, 140 + Math.sin(TAU * t * 2) * 3, 196, Math.sin(TAU * t) * .06);
+  c.restore();
+  const pulse = .5 + .5 * Math.sin(TAU * t * 4);
+  c.strokeStyle = `rgba(255,79,139,${.6 + .4 * pulse})`; c.lineWidth = 4; c.beginPath(); roundRect(c, 10, 10, 340, 230, 12); c.stroke();
+  c.fillStyle = 'rgba(20,20,30,.7)'; c.beginPath(); roundRect(c, 18, 210, 140, 22, 6); c.fill();
+  c.fillStyle = '#fff'; c.font = '700 12px "Bricolage Grotesque", sans-serif'; c.textAlign = 'left'; c.textBaseline = 'middle';
+  c.fillText('Your Crush (camera on!)', 26, 221.5);
+  [['JD', '#6b7a99'], ['KP', '#7a6b99'], ['MR', '#6b998a']].forEach(([ini, col], i) => {
+    const x = 10 + i * 116, y = 248;
+    c.fillStyle = '#2e2e36'; c.beginPath(); roundRect(c, x, y, 108, 102, 10); c.fill();
+    c.fillStyle = col; c.beginPath(); c.arc(x + 54, y + 44, 24, 0, TAU); c.fill();
+    c.fillStyle = '#fff'; c.font = '800 15px "Bricolage Grotesque", sans-serif'; c.textAlign = 'center'; c.fillText(ini, x + 54, y + 45);
+    c.fillStyle = 'rgba(255,255,255,.55)'; c.font = '600 10px "Bricolage Grotesque", sans-serif'; c.fillText('camera off', x + 54, y + 86);
+  });
+  c.textBaseline = 'alphabetic';
+  floatHearts(c, t, 9, 220, 350, 230, '#ff3d7f', 1, 2);
+  return { bottom: 'Camera on for you' };
+}},
+{ id: 'opentolove', pack: 'romance', name: 'Open To Love', e: '💼', frames: 48, draw(c, t) {
+  c.fillStyle = '#f3f2ef'; c.fillRect(0, 0, W, W);
+  floatHearts(c, t, 8, 0, W, W, '#ff9cc7', .7);
+  c.save(); c.shadowColor = 'rgba(0,0,0,.15)'; c.shadowBlur = 10; c.shadowOffsetY = 3;
+  c.beginPath(); roundRect(c, 14, 14, 332, 300, 14); c.fillStyle = '#fff'; c.fill(); c.restore();
+  c.save(); c.beginPath(); roundRect(c, 14, 14, 332, 300, 14); c.clip();
+  const bg = c.createLinearGradient(14, 0, 346, 0); bg.addColorStop(0, '#ff7ab0'); bg.addColorStop(1, '#9b6bff'); c.fillStyle = bg; c.fillRect(14, 14, 332, 76);
+  for (let i = 0; i < 8; i++) heart(c, 30 + i * 44 + ((t * 44) % 44) - 22, 52 + (i % 2) * 14, 12, 'rgba(255,255,255,.3)');
+  c.restore();
+  faceCircle(c, 92, 104, 58, '#ffe0ec');
+  c.lineWidth = 9; c.strokeStyle = '#fff'; c.beginPath(); c.arc(92, 104, 62, 0, TAU); c.stroke();
+  c.strokeStyle = '#ff4f8b'; c.lineWidth = 8; c.beginPath(); c.arc(92, 104, 63, Math.PI * .1, Math.PI * .9); c.stroke();
+  c.fillStyle = '#ff4f8b'; c.beginPath(); roundRect(c, 40, 160, 104, 22, 11); c.fill();
+  c.fillStyle = '#fff'; c.font = '800 11.5px "Bricolage Grotesque", sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('#OPENTOLOVE', 92, 171.5);
+  c.textAlign = 'left'; c.fillStyle = INK; c.font = '800 19px "Bricolage Grotesque", sans-serif'; c.fillText('Certified Catch', 30, 206);
+  c.font = '600 12.5px "Bricolage Grotesque", sans-serif'; c.fillStyle = '#444';
+  c.fillText('Seeking long-term synergy (romantic)', 30, 226);
+  c.fillStyle = '#888'; c.fillText('500+ connections · 0 dates · DMs open', 30, 244);
+  const skills = [['Eye contact in standups', .12], ['Reply-all restraint', .3], ['Excel-lent listener', .48]];
+  skills.forEach(([s, at], i) => {
+    if (t < at) return; const k = Math.min(1, (t - at) / .06), sc = 1 + 2.7 * Math.pow(k - 1, 3) + 1.7 * Math.pow(k - 1, 2);
+    const y = 108 + i * 32, n = Math.min(99, Math.floor((t - at) * 400));
+    c.save(); c.translate(250, y); c.scale(sc, sc);
+    c.fillStyle = '#eef3ff'; c.strokeStyle = '#2b59c3'; c.lineWidth = 1.5; c.beginPath(); roundRect(c, -84, -12, 168, 24, 12); c.fill(); c.stroke();
+    c.fillStyle = '#2b59c3'; c.font = '700 10.5px "Bricolage Grotesque", sans-serif'; c.textAlign = 'left'; c.fillText(s, -76, 0.5);
+    c.textAlign = 'right'; c.fillStyle = '#ff4f8b'; c.font = '800 10.5px "Bricolage Grotesque", sans-serif'; c.fillText('+' + n, 78, .5);
+    c.restore();
+  });
+  c.textBaseline = 'alphabetic';
+  return { bottom: 'Open to love' };
+}},
+{ id: 'connect', pack: 'romance', name: 'Connect Request', e: '🤝', frames: 48, draw(c, t) {
+  c.fillStyle = '#dbe8ff'; c.fillRect(0, 0, W, W);
+  c.save(); c.shadowColor = 'rgba(0,0,0,.18)'; c.shadowBlur = 12; c.shadowOffsetY = 4;
+  c.beginPath(); roundRect(c, 26, 18, 308, 264, 16); c.fillStyle = '#fff'; c.fill(); c.restore();
+  faceCircle(c, 180, 80, 50, '#ffe0ec');
+  c.strokeStyle = '#fff'; c.lineWidth = 5; c.beginPath(); c.arc(180, 80, 52, 0, TAU); c.stroke();
+  c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = INK; c.font = '800 16px "Bricolage Grotesque", sans-serif';
+  c.fillText('Your Crush wants to connect', 180, 150);
+  c.fillStyle = '#555'; c.font = 'italic 600 12px "Bricolage Grotesque", sans-serif';
+  c.fillText('"I\'d like to add you to my professional', 180, 176); c.fillText('network... and my heart."', 180, 193);
+  const accepted = t >= .55, press = t >= .5 && t < .55;
+  c.fillStyle = '#fff'; c.strokeStyle = '#9aa0ab'; c.lineWidth = 2; c.beginPath(); roundRect(c, 50, 218, 118, 38, 19); c.fill(); c.stroke();
+  c.fillStyle = '#6b7280'; c.font = '800 14px "Bricolage Grotesque", sans-serif'; c.fillText('Ignore', 109, 237.5);
+  c.save(); c.translate(251, 237); if (press) c.scale(.92, .92);
+  c.fillStyle = accepted ? '#18b26b' : '#2563eb'; c.beginPath(); roundRect(c, -59, -19, 118, 38, 19); c.fill();
+  c.fillStyle = '#fff'; c.fillText(accepted ? 'Connected ✓' : 'Accept', 0, .5); c.restore();
+  c.textBaseline = 'alphabetic';
+  // cursor
+  const k = Math.min(1, Math.max(0, (t - .15) / .33)), e = k * k * (3 - 2 * k);
+  const cx = 320 + (255 - 320) * e, cy = 340 + (242 - 340) * e;
+  if (t < .8) { c.save(); c.translate(cx, cy); c.beginPath(); c.moveTo(0, 0); c.lineTo(0, 22); c.lineTo(6, 17); c.lineTo(10, 26); c.lineTo(14, 24); c.lineTo(10, 15); c.lineTo(17, 15); c.closePath(); fs(c, '#fff', 2); c.restore(); }
+  if (accepted) {
+    const u = (t - .55) / .45;
+    for (let i = 0; i < 14; i++) { const a = rnd(i) * TAU, r = 20 + u * (80 + rnd(i + .5) * 90); c.globalAlpha = Math.max(0, 1 - u * .9);
+      heart(c, 251 + Math.cos(a) * r, 237 + Math.sin(a) * r - u * 30, 9 + rnd(i + .3) * 10, ['#ff4f8b', '#ff7ab0', '#e63946'][i % 3]); }
+    c.globalAlpha = 1;
+  }
+  return { bottom: "Let's connect" };
+}},
+{ id: 'calendar', pack: 'romance', name: 'Calendar Invite', e: '📅', frames: 48, draw(c, t) {
+  c.fillStyle = '#eef0f8'; c.fillRect(0, 0, W, W);
+  c.save(); c.shadowColor = 'rgba(0,0,0,.15)'; c.shadowBlur = 12; c.shadowOffsetY = 4;
+  c.beginPath(); roundRect(c, 16, 16, 328, 270, 14); c.fillStyle = '#fff'; c.fill(); c.restore();
+  c.save(); c.beginPath(); roundRect(c, 16, 16, 328, 270, 14); c.clip(); c.fillStyle = '#2b59c3'; c.fillRect(16, 16, 328, 34); c.restore();
+  c.fillStyle = '#fff'; c.font = '700 13px "Bricolage Grotesque", sans-serif'; c.textAlign = 'left'; c.textBaseline = 'middle'; c.fillText('Meeting invite', 30, 33.5);
+  faceCircle(c, 288, 100, 40, '#ffe0ec'); c.strokeStyle = '#2b59c3'; c.lineWidth = 3; c.beginPath(); c.arc(288, 100, 41, 0, TAU); c.stroke();
+  c.fillStyle = INK; c.font = '800 26px "Bricolage Grotesque", sans-serif'; c.fillText('Dinner? ', 30, 78);
+  heart(c, 140, 80, 13, '#ff4f8b');
+  c.font = '600 12.5px "Bricolage Grotesque", sans-serif'; c.fillStyle = '#444';
+  [['When', 'Friday, 7:00 PM'], ['Repeats', 'Forever'], ['Where', 'The good break room'], ['Agenda', '1. Food  2. Feelings']].forEach(([a, b], i) => {
+    c.fillStyle = '#888'; c.fillText(a, 30, 116 + i * 24); c.fillStyle = INK; c.fillText(b, 92, 116 + i * 24);
+  });
+  [['Accept', '#18b26b'], ['Maybe', '#9aa0ab'], ['Decline', '#e63946']].forEach(([s, col], i) => {
+    const x = 30 + i * 102; c.strokeStyle = col; c.lineWidth = 2; c.fillStyle = '#fff'; c.beginPath(); roundRect(c, x, 222, 94, 34, 17); c.fill(); c.stroke();
+    c.fillStyle = col; c.font = '800 13px "Bricolage Grotesque", sans-serif'; c.textAlign = 'center'; c.fillText(s, x + 47, 239.5); c.textAlign = 'left';
+  });
+  c.textBaseline = 'alphabetic';
+  if (t >= .4) {
+    const k = Math.min(1, (t - .4) / .08), s = 2.2 - 1.2 * (k * k * (3 - 2 * k));
+    c.save(); c.translate(180, 150); c.rotate(-.18); c.scale(s, s); c.globalAlpha = Math.min(1, k * 1.5);
+    c.font = '30px Anton, Impact, sans-serif'; const sw = Math.min(300, c.measureText('ACCEPTED FOREVER').width + 36);
+    c.fillStyle = 'rgba(255,255,255,.88)'; c.strokeStyle = '#ff2d6f'; c.lineWidth = 6; c.beginPath(); roundRect(c, -sw / 2, -30, sw, 60, 10); c.fill(); c.stroke();
+    c.fillStyle = '#ff2d6f'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('ACCEPTED FOREVER', 0, 2, sw - 24);
+    c.restore(); c.textBaseline = 'alphabetic';
+    floatHearts(c, t, 8, 20, 340, W, '#ff4f8b', 1);
+  }
+  return { bottom: 'Blocked. Forever.' };
+}},
+{ id: 'hearteyes', pack: 'romance', name: 'Heart Eyes', e: '😍', frames: 30, draw(c, t) {
+  const g = c.createRadialGradient(180, 170, 30, 180, 180, 280); g.addColorStop(0, '#ffb3d1'); g.addColorStop(1, '#ff4f8b'); c.fillStyle = g; c.fillRect(0, 0, W, W);
+  floatHearts(c, t, 12, 0, W, W, 'rgba(255,255,255,.55)', 1);
+  const h = 270, cy = 176 + Math.sin(TAU * t * 2) * 5, rot = Math.sin(TAU * t) * .07;
+  drawFace(c, 180, cy, h, rot);
+  const ey = -h / 2 + st.eye * h, beat = 1 + .22 * Math.max(0, Math.sin(TAU * t * 4));
+  c.save(); c.translate(180, cy); c.rotate(rot);
+  c.fillStyle = 'rgba(255,60,120,.3)'; for (const d of [-1, 1]) { c.beginPath(); c.ellipse(d * h * .19, ey + h * .13, h * .07, h * .04, 0, 0, TAU); c.fill(); }
+  for (const d of [-1, 1]) heart(c, d * h * .15, ey + h * .02, h * .085 * beat, '#ff1f5a', INK);
+  c.restore();
+  for (let i = 0; i < 6; i++) { const a = i / 6 * TAU + t * TAU; heart(c, 180 + Math.cos(a) * 150, cy + Math.sin(a) * 60 - 80, 12, '#fff'); }
+  return { bottom: "When they say 'per my last email'" };
+}},
 ];
 const popTints = [0, 1, 2, 3].map(() => { const x = document.createElement('canvas'); x.width = x.height = 400; return x; });
 let cur = TEMPLATES[0];
@@ -1018,7 +1198,7 @@ TEMPLATES.forEach(tp => {
   const b = document.createElement('button'); b.type = 'button'; b.className = 'bit';
   b.setAttribute('aria-pressed', tp === cur); b.innerHTML = `<span class="e">${tp.e}</span><span>${tp.name}</span>`;
   b.onclick = () => { cur = tp; start = performance.now(); document.querySelectorAll('.bit').forEach(x => x.setAttribute('aria-pressed', x === b)); };
-  (tp.pack === 'strategy' ? $('bits2') : tp.pack === 'body' ? $('bits3') : bitsEl).appendChild(b);
+  ({ strategy: $('bits2'), body: $('bits3'), romance: $('bits4') }[tp.pack] || bitsEl).appendChild(b);
 });
 
 function chips(el, list, get, set) {
