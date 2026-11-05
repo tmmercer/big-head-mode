@@ -94,8 +94,10 @@ footer{text-align:center;margin-top:30px;font-size:14px;opacity:.7}
     </section>
     <section class="card">
       <h2><span class="num">2</span> Dress them up</h2>
-      <div class="label">Hat <span class="small">· shows in every animation</span></div>
+      <div class="label">Hats <span class="small">· show in every animation · Auto gives the 🕺 Full Body pack its own look</span></div>
       <div class="chips" id="hats"></div>
+      <div class="label">Hair &amp; headwear</div>
+      <div class="chips" id="hair"></div>
       <div class="label">Outfit <span class="small">· for the 🕺 Full Body pack</span></div>
       <div class="chips" id="outfits"></div>
     </section>
@@ -200,13 +202,17 @@ function refresh() { drawEditor(); updateFace(); }
 
 function drawFace(c, x, y, h, rot = 0, sx = 1, sy = 1, img = face) {
   c.save(); c.translate(x, y); c.rotate(rot); c.scale(sx, sy);
-  c.drawImage(img, -h / 2, -h / 2, h, h);
-  if (hatOK) drawHat(c, h);
+  faceAt(c, h, img);
   c.restore();
+}
+function faceAt(c, h, img = face) {
+  if (hatOK) drawHair(c, h, true);
+  c.drawImage(img, -h / 2, -h / 2, h, h);
+  if (hatOK) { drawHair(c, h, false); drawHat(c, h); }
 }
 
 /* ---------- dress-up: skin, hats, outfits, body ---------- */
-let skin = '#f2b98a', hatSel = 'none', outfitSel = 'suit', hatOK = true, hatT = 0;
+let skin = '#f2b98a', hatSel = 'auto', autoHat = 'none', outfitSel = 'suit', hatOK = true, hatT = 0;
 function sampleSkin() {
   try {
     const d = face.getContext('2d').getImageData(120, 225, 160, 50).data; let r = 0, g = 0, b = 0, n = 0;
@@ -219,6 +225,7 @@ function sampleSkin() {
 const INK = '#1a1423';
 function fs(c, fill, lw) { c.fillStyle = fill; c.fill(); c.lineWidth = lw; c.strokeStyle = INK; c.stroke(); }
 const HATS = [
+  { id: 'auto', name: 'Auto', e: '✨' },
   { id: 'none', name: 'None', e: '🚫' },
   { id: 'top', name: 'Top hat', e: '🎩' },
   { id: 'crown', name: 'Crown', e: '👑' },
@@ -228,11 +235,65 @@ const HATS = [
   { id: 'chef', name: 'Chef', e: '🍳' },
   { id: 'wizard', name: 'Wizard', e: '🧙' },
 ];
+const HAIR = [
+  { id: 'afro', name: 'Afro', e: '🌀' },
+  { id: 'mohawk', name: 'Mohawk', e: '🦔' },
+  { id: 'pigtails', name: 'Pigtails', e: '🎀' },
+  { id: 'mullet', name: 'Mullet', e: '🎸' },
+  { id: 'clown', name: 'Clown wig', e: '🤡' },
+  { id: 'sweatband', name: 'Sweatband', e: '🏋️' },
+  { id: 'cap', name: 'Backwards cap', e: '🧢' },
+];
+const curHat = () => hatSel === 'auto' ? autoHat : hatSel;
+function drawHair(c, h, back) {
+  const id = curHat(), lw = Math.max(2, h * 0.016);
+  c.save(); c.lineJoin = 'round'; c.lineCap = 'round';
+  const puffs = (pts, fill) => { pts.forEach(([x, y, r]) => { c.beginPath(); c.arc(x * h, y * h, r * h, 0, TAU); c.fillStyle = INK; c.fill(); }); pts.forEach(([x, y, r]) => { c.beginPath(); c.arc(x * h, y * h, r * h - lw, 0, TAU); c.fillStyle = fill; c.fill(); }); };
+  switch (id) {
+    case 'afro':
+      if (back) { const pts = []; for (let i = 0; i < 16; i++) { const a = i / 16 * TAU; pts.push([Math.cos(a) * .48, -.2 + Math.sin(a) * .42, .13]); } pts.push([0, -.2, .48]); puffs(pts, '#2a1a12'); }
+      else { const pts = []; for (let i = 0; i < 7; i++) { const a = Math.PI * (1.08 + i / 6 * .84); pts.push([Math.cos(a) * .3, -.3 + Math.sin(a) * .2, .09]); } puffs(pts, '#2a1a12'); }
+      break;
+    case 'mohawk':
+      if (!back) {
+        c.beginPath(); c.moveTo(-.09 * h, -.38 * h);
+        for (let i = 0; i < 5; i++) { const x = -.09 + i * .045; c.lineTo((x + .0225) * h, (-.78 + Math.abs(i - 2) * .08) * h); c.lineTo((x + .045) * h, -.44 * h); }
+        c.lineTo(.09 * h, -.38 * h); c.closePath(); fs(c, '#ff2e88', lw);
+        c.beginPath(); c.ellipse(0, -.44 * h, .1 * h, .07 * h, 0, Math.PI, TAU); fs(c, '#18b26b', lw);
+      }
+      break;
+    case 'pigtails':
+      if (back) { for (const d of [-1, 1]) { c.beginPath(); c.ellipse(d * .44 * h, -.06 * h, .12 * h, .2 * h, d * -.5, 0, TAU); fs(c, '#e86a2a', lw); c.beginPath(); c.arc(d * .35 * h, -.2 * h, .045 * h, 0, TAU); fs(c, '#ff4f8b', lw); } }
+      else { c.beginPath(); c.moveTo(-.33 * h, -.2 * h); c.quadraticCurveTo(-.32 * h, -.52 * h, 0, -.53 * h); c.quadraticCurveTo(.32 * h, -.52 * h, .33 * h, -.2 * h);
+        for (let i = 0; i < 6; i++) { const x0 = .33 - i * .11; c.quadraticCurveTo((x0 - .055) * h, -.27 * h, (x0 - .11) * h, (i === 5 ? -.2 : -.32) * h); } c.closePath(); fs(c, '#e86a2a', lw); }
+      break;
+    case 'mullet':
+      if (back) { c.beginPath(); c.moveTo(-.34 * h, -.25 * h); c.quadraticCurveTo(-.46 * h, .3 * h, -.36 * h, .62 * h); c.lineTo(-.2 * h, .5 * h); c.lineTo(-.08 * h, .66 * h); c.lineTo(.06 * h, .5 * h); c.lineTo(.2 * h, .66 * h); c.lineTo(.36 * h, .58 * h); c.quadraticCurveTo(.46 * h, .3 * h, .34 * h, -.25 * h); c.closePath(); fs(c, '#6b3f1d', lw); }
+      else { c.beginPath(); c.moveTo(-.32 * h, -.24 * h); c.quadraticCurveTo(-.34 * h, -.56 * h, 0, -.56 * h); c.quadraticCurveTo(.34 * h, -.56 * h, .32 * h, -.24 * h); c.lineTo(.2 * h, -.36 * h); c.lineTo(.1 * h, -.3 * h); c.lineTo(0, -.38 * h); c.lineTo(-.12 * h, -.31 * h); c.lineTo(-.22 * h, -.37 * h); c.closePath(); fs(c, '#6b3f1d', lw); }
+      break;
+    case 'clown':
+      if (back) { const cols = ['#ff2e88', '#ffd23f', '#18b26b', '#2b59c3', '#ff8a3d', '#7b5cff']; for (const d of [-1, 1]) [[.42, -.3, .12], [.5, -.12, .13], [.44, .06, .11]].forEach(([x, y, r], i) => puffs([[d * x, y, r]], cols[(i + (d > 0 ? 3 : 0)) % 6])); }
+      else { c.beginPath(); c.arc(0, (-.5 + st.eye + .2) * h, .065 * h, 0, TAU); fs(c, '#ff2020', lw); c.fillStyle = 'rgba(255,255,255,.7)'; c.beginPath(); c.arc(-.02 * h, (-.5 + st.eye + .18) * h, .018 * h, 0, TAU); c.fill(); }
+      break;
+    case 'sweatband':
+      if (!back) { const y = -.38 * h; c.beginPath(); c.moveTo(-.29 * h, y); c.quadraticCurveTo(0, y - .05 * h, .29 * h, y); c.lineTo(.29 * h, y + .09 * h); c.quadraticCurveTo(0, y + .04 * h, -.29 * h, y + .09 * h); c.closePath(); fs(c, '#fff', lw);
+        c.strokeStyle = '#e63946'; c.lineWidth = h * .018; c.beginPath(); c.moveTo(-.28 * h, y + .025 * h); c.quadraticCurveTo(0, y - .02 * h, .28 * h, y + .025 * h); c.moveTo(-.28 * h, y + .065 * h); c.quadraticCurveTo(0, y + .02 * h, .28 * h, y + .065 * h); c.stroke(); }
+      break;
+    case 'cap':
+      if (back) { c.beginPath(); c.ellipse(.05 * h, -.62 * h, .22 * h, .07 * h, -.15, 0, TAU); fs(c, '#c1121f', lw); }
+      else { const cy = -.3 * h, r = .35 * h; c.beginPath(); c.arc(0, cy, r, Math.PI, TAU); c.closePath(); fs(c, '#e63946', lw);
+        c.beginPath(); c.moveTo(-.12 * h, cy); c.quadraticCurveTo(0, cy - .14 * h, .12 * h, cy); c.closePath(); fs(c, '#1d1d24', lw * .7);
+        c.beginPath(); c.rect(-.1 * h, cy - .025 * h, .2 * h, .035 * h); fs(c, '#ffd23f', lw * .6);
+        c.beginPath(); c.arc(0, cy - r, .03 * h, 0, TAU); fs(c, '#c1121f', lw * .6); }
+      break;
+  }
+  c.restore();
+}
 function drawHat(c, h) {
-  if (hatSel === 'none') return;
+  const hatId = curHat(); if (!HATS.some(x => x.id === hatId) || hatId === 'none' || hatId === 'auto') return;
   const top = -h / 2 + h * 0.1, hw = h * 0.36, lw = Math.max(2, h * 0.016);
   c.save(); c.lineJoin = 'round';
-  switch (hatSel) {
+  switch (hatId) {
     case 'top':
       c.beginPath(); c.rect(-hw * .78, top - h * .48, hw * 1.56, h * .48); fs(c, '#1d1d24', lw);
       c.beginPath(); c.rect(-hw * .78, top - h * .14, hw * 1.56, h * .09); fs(c, '#e63946', lw);
@@ -477,7 +538,7 @@ const TEMPLATES = [
   const b = Math.abs(Math.sin(TAU * t * 2)), q = (1 - b) * (1 - b), base = 338 - b * 58;
   c.fillStyle = 'rgba(0,0,0,.35)'; c.beginPath(); c.ellipse(180, 340, 70 * (0.6 + 0.4 * (1 - b)), 12, 0, 0, TAU); c.fill();
   c.save(); c.translate(180, base); c.rotate(Math.sin(TAU * t * 2) * 0.14); c.scale(1 + q * 0.22, 1 - q * 0.18);
-  c.drawImage(face, -122, -244, 244, 244); c.restore();
+  c.translate(0, -122); faceAt(c, 244); c.restore();
 }},
 { id: 'rain', name: 'Face Rain', e: '🌧️', frames: 40, draw(c, t) {
   const g = c.createLinearGradient(0, 0, 0, W); g.addColorStop(0, '#5b4bff'); g.addColorStop(1, '#c26bff');
@@ -518,7 +579,7 @@ const TEMPLATES = [
   for (let r = -1; r < 11; r++) for (let q = -1; q < 11; q++) { c.beginPath(); c.arc(q * 40 + (r % 2 ? 20 : 0) + off, r * 40 + off, 7, 0, TAU); c.fill(); }
   const w = Math.sin(TAU * t * 3), sx = 1 + .17 * w, sy = 1 - .15 * w, sk = .13 * Math.sin(TAU * t * 3 + 1.2);
   c.fillStyle = 'rgba(120,20,70,.25)'; c.beginPath(); c.ellipse(180, 332, 96 * sx, 14, 0, 0, TAU); c.fill();
-  c.save(); c.translate(180, 334); c.transform(1, 0, sk, 1, 0, 0); c.scale(sx, sy); c.drawImage(face, -140, -280, 280, 280); c.restore();
+  c.save(); c.translate(180, 334); c.transform(1, 0, sk, 1, 0, 0); c.scale(sx, sy); c.translate(0, -140); faceAt(c, 280); c.restore();
 }},
 { id: 'rocket', name: 'Blast Off', e: '🚀', frames: 30, draw(c, t, f) {
   c.fillStyle = '#0b0b2b'; c.fillRect(0, 0, W, W);
@@ -649,7 +710,7 @@ const TEMPLATES = [
   return { bottom: 'Vibe check' };
 }},
 /* ----- Full Body pack ----- */
-{ id: 'dance', pack: 'body', name: 'Dance Floor', e: '🕺', frames: 32, draw(c, t) {
+{ id: 'dance', pack: 'body', defaultHat: 'afro', name: 'Dance Floor', e: '🕺', frames: 32, draw(c, t) {
   const beat = Math.floor(t * 8), cols = ['#ff4f8b', '#ffd23f', '#2ec4b6', '#7b5cff', '#ff8a3d'];
   c.fillStyle = '#1b1030'; c.fillRect(0, 0, W, W);
   for (let i = 0; i < 6; i++) for (let j = 0; j < 2; j++) { c.globalAlpha = (i + j + beat) % 2 ? .95 : .45; c.fillStyle = cols[(i + j * 2 + beat) % 5]; c.fillRect(i * 60, 300 + j * 30, 60, 30); }
@@ -664,7 +725,7 @@ const TEMPLATES = [
     lean: m * .12, head: -m * .15, bob: -Math.abs(Math.sin(TAU * t * 4)) * 7 });
   return { bottom: 'Weekend mode' };
 }},
-{ id: 'flex', pack: 'body', name: 'Flex', e: '💪', frames: 24, draw(c, t) {
+{ id: 'flex', pack: 'body', defaultHat: 'sweatband', name: 'Flex', e: '💪', frames: 24, draw(c, t) {
   c.fillStyle = '#e4ecf2'; c.fillRect(0, 0, W, W);
   c.fillStyle = '#c9d6e0'; for (let i = 0; i < 6; i++) c.fillRect(0, 40 + i * 44, W, 3);
   c.fillStyle = '#5a6b7a'; c.fillRect(0, 312, W, 48);
@@ -681,7 +742,7 @@ const TEMPLATES = [
   c.globalAlpha = 1;
   return { bottom: 'Gains' };
 }},
-{ id: 'run', pack: 'body', name: 'Running Late', e: '🏃', frames: 24, draw(c, t) {
+{ id: 'run', pack: 'body', defaultHat: 'cap', name: 'Running Late', e: '🏃', frames: 24, draw(c, t) {
   c.fillStyle = '#9fdcff'; c.fillRect(0, 0, W, 230);
   for (let i = 0; i < 5; i++) { const x = W + 60 - ((rnd(i) + t * (1 + i % 2)) % 1) * (W + 160), y = 120 + rnd(i + .3) * 90, r = 30 + rnd(i + .6) * 20;
     c.fillStyle = '#2f9e5a'; c.beginPath(); c.arc(x, y, r, 0, TAU); c.fill(); c.fillStyle = '#7a4a22'; c.fillRect(x - 5, y + r - 6, 10, 240 - y - r + 6); }
@@ -698,7 +759,7 @@ const TEMPLATES = [
   for (let i = 0; i < 4; i++) { const y = 120 + i * 40, o = ((t * 6 + i * .3) % 1) * 30; line(c, 40 - o, y, 80 - o, y); line(c, 280 + o, y + 20, 320 + o, y + 20); }
   return { top: 'Late for the meeting' };
 }},
-{ id: 'jacks', pack: 'body', name: 'Jumping Jacks', e: '⭐', frames: 24, draw(c, t) {
+{ id: 'jacks', pack: 'body', defaultHat: 'pigtails', name: 'Jumping Jacks', e: '⭐', frames: 24, draw(c, t) {
   c.fillStyle = '#ffd23f'; c.fillRect(0, 0, W, W);
   c.save(); c.translate(180, 160); c.rotate(t * TAU / 10); c.fillStyle = '#ffe680';
   for (let i = 0; i < 10; i++) { c.beginPath(); c.moveTo(0, 0); c.arc(0, 0, 400, i * TAU / 10, i * TAU / 10 + TAU / 20); c.closePath(); c.fill(); }
@@ -711,7 +772,7 @@ const TEMPLATES = [
     legL: [.06 + o * .42, 0], legR: [.06 + o * .42, 0], head: 0 });
   return { bottom: 'Cardio meeting' };
 }},
-{ id: 'floss', pack: 'body', name: 'The Floss', e: '🪢', frames: 24, draw(c, t) {
+{ id: 'floss', pack: 'body', defaultHat: 'mohawk', name: 'The Floss', e: '🪢', frames: 24, draw(c, t) {
   const g = c.createLinearGradient(0, 0, 0, W); g.addColorStop(0, '#7b5cff'); g.addColorStop(1, '#ff4f8b'); c.fillStyle = g; c.fillRect(0, 0, W, W);
   c.fillStyle = 'rgba(255,255,255,.12)'; for (let i = 0; i < 8; i++) { c.beginPath(); c.arc(rnd(i) * W, rnd(i + .5) * W, 20 + rnd(i + .2) * 40, 0, TAU); c.fill(); }
   const s = Math.sin(TAU * t * 2);
@@ -720,7 +781,7 @@ const TEMPLATES = [
     legL: [.1 + .06 * s, 0], legR: [.1 - .06 * s, 0],
     lean: -s * .07, head: s * .08, bob: -Math.abs(s) * 4 });
 }},
-{ id: 'power', pack: 'body', name: 'Power Pose', e: '🦸', frames: 30, draw(c, t) {
+{ id: 'power', pack: 'body', defaultHat: 'mullet', name: 'Power Pose', e: '🦸', frames: 30, draw(c, t) {
   c.fillStyle = '#2b59c3'; c.fillRect(0, 0, W, W);
   c.save(); c.translate(180, 140); c.rotate(t * TAU / 12); c.fillStyle = '#3a6ee0';
   for (let i = 0; i < 12; i++) { c.beginPath(); c.moveTo(0, 0); c.arc(0, 0, 420, i * TAU / 12, i * TAU / 12 + TAU / 24); c.closePath(); c.fill(); }
@@ -899,7 +960,8 @@ function chips(el, list, get, set) {
     el.appendChild(b);
   });
 }
-chips($('hats'), HATS, () => hatSel, v => { hatSel = v; });
+chips($('hats'), HATS, () => hatSel, v => { hatSel = v; document.querySelectorAll('#hair .chip').forEach(x => x.setAttribute('aria-pressed', false)); });
+chips($('hair'), HAIR, () => hatSel, v => { hatSel = v; document.querySelectorAll('#hats .chip').forEach(x => x.setAttribute('aria-pressed', false)); });
 chips($('outfits'), OUTFITS, () => outfitSel, v => {
   outfitSel = v;
   if (cur.pack !== 'body') { const b = [...document.querySelectorAll('#bits3 .bit')][0]; if (b) b.click(); }
@@ -933,7 +995,7 @@ function caption(c, text, isTop) {
 }
 function render(c, t, tp) {
   const f = Math.round(t * tp.frames);
-  hatOK = !tp.noHat; hatT = t;
+  hatOK = !tp.noHat; hatT = t; autoHat = tp.defaultHat || 'none';
   c.save(); const d = tp.draw(c, t, f) || {}; c.restore();
   caption(c, topIn.value || d.top, true);
   caption(c, botIn.value || d.bottom, false);
