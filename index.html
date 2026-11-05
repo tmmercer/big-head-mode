@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Big Head Mode — Face GIF Maker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#1a1423;--cream:#fff3d6;--pink:#ff4f8b;--yellow:#ffd23f;--teal:#2ec4b6;--paper:#fff}
+*{box-sizing:border-box}
+body{margin:0;background:var(--cream);color:var(--ink);font-family:'Bricolage Grotesque',system-ui,sans-serif;
+  background-image:radial-gradient(#f7d397 1.5px,transparent 1.6px);background-size:22px 22px}
+.wrap{max-width:1040px;margin:0 auto;padding:20px 16px 48px}
+header{text-align:center;margin:10px 0 24px}
+h1{font-weight:800;font-size:clamp(42px,10vw,76px);line-height:.95;margin:0;letter-spacing:-.03em}
+h1 .big{display:inline-block;background:var(--yellow);border:3px solid var(--ink);border-radius:16px;padding:0 .14em .04em;
+  box-shadow:5px 5px 0 var(--ink);animation:wob 2.4s ease-in-out infinite;transform:rotate(-3deg)}
+@keyframes wob{50%{transform:rotate(3deg) scale(1.05)}}
+@media (prefers-reduced-motion:reduce){h1 .big{animation:none}}
+.sub{font-size:18px;margin:16px 0 0;opacity:.8}
+.grid{display:grid;gap:22px}
+@media(min-width:880px){.grid{grid-template-columns:1fr 1.08fr;align-items:start}.preview-card{position:sticky;top:16px}}
+.card{background:var(--paper);border:3px solid var(--ink);border-radius:22px;box-shadow:6px 6px 0 var(--ink);padding:18px}
+.card h2{margin:0 0 14px;font-size:23px;font-weight:800;display:flex;align-items:center;gap:10px;letter-spacing:-.01em}
+.num{width:32px;height:32px;flex:none;border-radius:50%;background:var(--pink);color:#fff;display:grid;place-items:center;font-size:17px;border:2.5px solid var(--ink)}
+.btn{font:inherit;font-weight:800;font-size:17px;border:3px solid var(--ink);border-radius:14px;padding:12px 18px;background:var(--yellow);
+  color:var(--ink);box-shadow:4px 4px 0 var(--ink);cursor:pointer;display:inline-flex;align-items:center;gap:8px;justify-content:center;
+  transition:transform .08s,box-shadow .08s;user-select:none;-webkit-tap-highlight-color:transparent}
+.btn:active{transform:translate(3px,3px);box-shadow:1px 1px 0 var(--ink)}
+.btn.pink{background:var(--pink);color:#fff}
+.btn.ghost{background:#fff;font-size:15px;padding:8px 14px;box-shadow:3px 3px 0 var(--ink)}
+.btn.block{width:100%}
+.btn:disabled{opacity:.6;cursor:progress}
+.editor-box{width:100%;max-width:340px;margin:16px auto 8px;aspect-ratio:1}
+#editor{width:100%;height:100%;border-radius:16px;border:3px solid var(--ink);touch-action:none;cursor:grab;background:#2a2333;display:block}
+#editor:active{cursor:grabbing}
+.hint{font-size:14px;opacity:.7;text-align:center;margin:6px 0 12px}
+.slider{display:grid;grid-template-columns:78px 1fr;align-items:center;gap:10px;margin:8px 0;font-weight:600;font-size:15px}
+input[type=range]{width:100%;accent-color:var(--pink);height:28px}
+.err{color:#c4002f;font-weight:600;text-align:center;font-size:14px;min-height:0;margin:8px 0 0}
+#preview{width:100%;max-width:400px;aspect-ratio:1;display:block;margin:0 auto;border-radius:16px;border:3px solid var(--ink);background:#000}
+.bits{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:16px 0 6px}
+.bit{font:inherit;color:var(--ink);border:2.5px solid var(--ink);border-radius:12px;background:#fff;padding:8px 2px 7px;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;gap:3px;font-weight:600;font-size:12.5px;line-height:1.1;-webkit-tap-highlight-color:transparent}
+.bit .e{font-size:25px;line-height:1}
+.bit[aria-pressed=true]{background:var(--teal);box-shadow:3px 3px 0 var(--ink);transform:translate(-2px,-2px)}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:480px){.fields{grid-template-columns:1fr}}
+label.field{display:block;font-weight:600;font-size:15px;margin:10px 0 4px}
+input[type=text]{width:100%;font:inherit;font-size:16px;padding:10px 12px;border:2.5px solid var(--ink);border-radius:12px;background:#fffdf6;color:var(--ink)}
+input[type=text]:focus{outline:3px solid var(--yellow);outline-offset:1px}
+.make{margin-top:16px}
+.progress{height:16px;border:2.5px solid var(--ink);border-radius:99px;overflow:hidden;background:#fff;margin-top:14px;display:none}
+.progress>div{height:100%;width:0;background:repeating-linear-gradient(45deg,var(--pink) 0 10px,#ff7aa8 10px 20px)}
+#result{display:none;margin-top:18px;text-align:center;border-top:3px dashed var(--ink);padding-top:18px}
+#result h3{margin:0 0 12px;font-size:20px}
+#out{width:100%;max-width:400px;border-radius:16px;border:3px solid var(--ink);display:block;margin:0 auto}
+.row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:14px}
+.small{font-size:14px;opacity:.75;margin:10px 0 0}
+footer{text-align:center;margin-top:30px;font-size:14px;opacity:.7}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1><span class="big">Big Head</span> Mode</h1>
+    <p class="sub">Put your friend's face in a ridiculous looping GIF.</p>
+  </header>
+
+  <div class="grid">
+    <section class="card">
+      <h2><span class="num">1</span> Grab their face</h2>
+      <label class="btn pink block" for="file">📸 Choose a photo</label>
+      <input id="file" type="file" accept="image/*" class="vh">
+      <p class="err" id="err"></p>
+      <div class="editor-box"><canvas id="editor" width="600" height="600" aria-label="Drag to position the face inside the oval"></canvas></div>
+      <p class="hint">Drag to move · pinch or slide to zoom · fit the face in the oval</p>
+      <div class="slider"><label for="zoom">Zoom</label><input id="zoom" type="range" min="-1.5" max="3.2" step="0.01" value="0"></div>
+      <div class="slider"><label for="tilt">Tilt</label><input id="tilt" type="range" min="-45" max="45" step="1" value="0"></div>
+      <div class="slider"><label for="eye">Eye line</label><input id="eye" type="range" min="0.2" max="0.7" step="0.01" value="0.42"></div>
+      <div class="row"><button class="btn ghost" id="reset" type="button">↺ Reset position</button></div>
+    </section>
+
+    <section class="card preview-card">
+      <h2><span class="num">2</span> Pick the bit</h2>
+      <canvas id="preview" width="360" height="360" aria-label="Live preview"></canvas>
+      <div class="bits" id="bits" role="group" aria-label="Animation"></div>
+      <div class="fields">
+        <div><label class="field" for="top">Top text</label><input id="top" type="text" maxlength="60" placeholder="optional"></div>
+        <div><label class="field" for="bottom">Bottom text</label><input id="bottom" type="text" maxlength="60" placeholder="optional"></div>
+      </div>
+      <div class="slider" style="margin-top:12px"><label for="speed">Speed <span id="speedv">1×</span></label><input id="speed" type="range" min="0.5" max="2" step="0.25" value="1"></div>
+      <button class="btn pink block make" id="make" type="button">✨ Make the GIF</button>
+      <div class="progress" id="prog"><div></div></div>
+      <div id="result">
+        <h3>Here it is 🎉</h3>
+        <img id="out" alt="Your finished GIF">
+        <div class="row"><button class="btn" id="save" type="button" hidden>⬇️ Save GIF</button><button class="btn" id="share" type="button" hidden>📤 Share</button></div>
+        <p class="small" id="savehint"></p>
+      </div>
+    </section>
+  </div>
+
+  <footer>Everything runs in your browser — the photo never leaves your device.<br>Best used on friends who are in on the joke 😄</footer>
+</div>
+
+<script>
+(() => {
+const TAU = Math.PI * 2, W = 360;
+const $ = id => document.getElementById(id);
+const rnd = s => { const x = Math.sin(s * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
+const ed = $('editor'), ectx = ed.getContext('2d');
+const pv = $('preview'), pctx = pv.getContext('2d');
+
+/* ---------- face source ---------- */
+function makePlaceholder() {
+  const c = document.createElement('canvas'); c.width = c.height = 600;
+  const g = c.getContext('2d');
+  g.fillStyle = '#f2b98a'; g.fillRect(0, 0, 600, 600);
+  g.fillStyle = '#4a2c1d'; g.beginPath(); g.ellipse(300, 120, 230, 95, 0, 0, TAU); g.fill();
+  g.beginPath(); g.ellipse(170, 170, 60, 70, -.4, 0, TAU); g.fill();
+  g.fillStyle = '#ff9a9a'; [[205, 340], [395, 340]].forEach(([x, y]) => { g.beginPath(); g.ellipse(x, y, 34, 22, 0, 0, TAU); g.fill(); });
+  [[240, 268], [360, 268]].forEach(([x, y], i) => {
+    g.fillStyle = '#fff'; g.beginPath(); g.ellipse(x, y, 30, 34, 0, 0, TAU); g.fill();
+    g.fillStyle = '#1a1423'; g.beginPath(); g.arc(x + (i ? -6 : 6), y + 4, 15, 0, TAU); g.fill();
+    g.fillStyle = '#fff'; g.beginPath(); g.arc(x + (i ? -1 : 11), y - 2, 5, 0, TAU); g.fill();
+  });
+  g.strokeStyle = '#4a2c1d'; g.lineWidth = 12; g.lineCap = 'round';
+  g.beginPath(); g.moveTo(205, 215); g.quadraticCurveTo(240, 195, 272, 212); g.stroke();
+  g.beginPath(); g.moveTo(328, 205); g.quadraticCurveTo(362, 190, 395, 215); g.stroke();
+  g.fillStyle = '#7a1f2b'; g.beginPath(); g.moveTo(225, 365); g.quadraticCurveTo(300, 470, 375, 365); g.closePath(); g.fill();
+  g.fillStyle = '#fff'; g.fillRect(245, 365, 110, 16);
+  g.strokeStyle = '#c47b52'; g.lineWidth = 8; g.beginPath(); g.moveTo(300, 290); g.lineTo(290, 325); g.lineTo(308, 328); g.stroke();
+  return c;
+}
+let src = makePlaceholder();
+const st = { ox: 0, oy: 0, zoom: 1, rot: 0, eye: 0.42 };
+let baseScale = 1;
+const fitBase = () => { baseScale = Math.max(600 / src.width, 600 / src.height); };
+fitBase();
+
+function drawSrc(c, cx, cy) {
+  c.translate(cx + st.ox, cy + st.oy); c.rotate(st.rot);
+  const s = baseScale * st.zoom; c.scale(s, s);
+  c.drawImage(src, -src.width / 2, -src.height / 2);
+}
+
+function drawEditor() {
+  const c = ectx;
+  c.fillStyle = '#2a2333'; c.fillRect(0, 0, 600, 600);
+  c.save(); drawSrc(c, 300, 300); c.restore();
+  c.save(); c.fillStyle = 'rgba(26,16,36,.62)'; c.beginPath(); c.rect(0, 0, 600, 600);
+  c.ellipse(300, 300, 168, 200, 0, 0, TAU); c.fill('evenodd'); c.restore();
+  c.lineWidth = 5; c.setLineDash([18, 12]); c.strokeStyle = '#ffd23f';
+  c.beginPath(); c.ellipse(300, 300, 168, 200, 0, 0, TAU); c.stroke();
+  const ey = 100 + st.eye * 400;
+  c.setLineDash([10, 8]); c.lineWidth = 3; c.strokeStyle = '#2ec4b6';
+  c.beginPath(); c.moveTo(140, ey); c.lineTo(460, ey); c.stroke(); c.setLineDash([]);
+  c.fillStyle = '#2ec4b6'; c.font = '600 24px "Bricolage Grotesque", sans-serif'; c.textAlign = 'left';
+  c.fillText('eyes', 470, ey + 8);
+}
+
+const face = document.createElement('canvas'); face.width = face.height = 400;
+function updateFace() {
+  const c = face.getContext('2d');
+  c.clearRect(0, 0, 400, 400);
+  c.save(); drawSrc(c, 200, 200); c.restore();
+  c.save(); c.globalCompositeOperation = 'destination-in';
+  c.translate(200, 200); c.scale(1, 200 / 168);
+  const g = c.createRadialGradient(0, 0, 0, 0, 0, 168);
+  g.addColorStop(0, '#000'); g.addColorStop(.9, '#000'); g.addColorStop(1, 'rgba(0,0,0,0)');
+  c.fillStyle = g; c.fillRect(-200, -240, 400, 480); c.restore();
+}
+function refresh() { drawEditor(); updateFace(); }
+
+function drawFace(c, x, y, h, rot = 0, sx = 1, sy = 1, img = face) {
+  c.save(); c.translate(x, y); c.rotate(rot); c.scale(sx, sy);
+  c.drawImage(img, -h / 2, -h / 2, h, h); c.restore();
+}
+
+/* ---------- editor interaction ---------- */
+const zoomIn = $('zoom'), tiltIn = $('tilt'), eyeIn = $('eye');
+const syncSliders = () => { zoomIn.value = Math.log2(st.zoom); tiltIn.value = Math.round(st.rot * 180 / Math.PI); eyeIn.value = st.eye; };
+zoomIn.oninput = () => { st.zoom = Math.pow(2, +zoomIn.value); refresh(); };
+tiltIn.oninput = () => { st.rot = +tiltIn.value * Math.PI / 180; refresh(); };
+eyeIn.oninput = () => { st.eye = +eyeIn.value; refresh(); };
+function resetView() { fitBase(); st.ox = st.oy = 0; st.zoom = 1; st.rot = 0; syncSliders(); refresh(); }
+$('reset').onclick = resetView;
+
+const pts = new Map();
+const clampZoom = z => Math.min(Math.pow(2, 3.2), Math.max(Math.pow(2, -1.5), z));
+ed.addEventListener('pointerdown', e => { ed.setPointerCapture(e.pointerId); pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); });
+ed.addEventListener('pointermove', e => {
+  if (!pts.has(e.pointerId)) return;
+  const prev = pts.get(e.pointerId), k = ed.width / ed.getBoundingClientRect().width;
+  if (pts.size === 1) {
+    st.ox += (e.clientX - prev.x) * k; st.oy += (e.clientY - prev.y) * k;
+  } else if (pts.size === 2) {
+    const other = [...pts.entries()].find(([id]) => id !== e.pointerId)[1];
+    const d0 = Math.hypot(prev.x - other.x, prev.y - other.y), d1 = Math.hypot(e.clientX - other.x, e.clientY - other.y);
+    if (d0 > 4) { const nz = clampZoom(st.zoom * d1 / d0), r = nz / st.zoom; st.ox *= r; st.oy *= r; st.zoom = nz; }
+  }
+  pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  syncSliders(); refresh();
+});
+['pointerup', 'pointercancel', 'lostpointercapture'].forEach(n => ed.addEventListener(n, e => pts.delete(e.pointerId)));
+ed.addEventListener('wheel', e => {
+  e.preventDefault(); const nz = clampZoom(st.zoom * Math.exp(-e.deltaY * 0.0015)), r = nz / st.zoom;
+  st.ox *= r; st.oy *= r; st.zoom = nz; syncSliders(); refresh();
+}, { passive: false });
+
+$('file').addEventListener('change', e => {
+  const f = e.target.files[0]; if (!f) return;
+  $('err').textContent = '';
+  const url = URL.createObjectURL(f), im = new Image();
+  im.onload = () => {
+    const s = Math.min(1, 1600 / Math.max(im.naturalWidth, im.naturalHeight));
+    const c = document.createElement('canvas');
+    c.width = Math.round(im.naturalWidth * s); c.height = Math.round(im.naturalHeight * s);
+    c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
+    src = c; URL.revokeObjectURL(url); resetView();
+  };
+  im.onerror = () => { URL.revokeObjectURL(url); $('err').textContent = "Couldn't read that photo — try a JPG or PNG."; };
+  im.src = url;
+  e.target.value = '';
+});
+
+/* ---------- animation templates ---------- */
+function roundRect(c, x, y, w, h, r) { c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
+function line(c, x1, y1, x2, y2) { c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.stroke(); }
+const tint = document.createElement('canvas'); tint.width = tint.height = 400;
+
+const TEMPLATES = [
+{ id: 'bobble', name: 'Bobble­head', e: '🤪', frames: 30, draw(c, t) {
+  const g = c.createLinearGradient(0, 0, 0, W); g.addColorStop(0, '#79d5ff'); g.addColorStop(1, '#dcf7ff');
+  c.fillStyle = g; c.fillRect(0, 0, W, W);
+  c.fillStyle = '#fff';
+  for (let i = 0; i < 3; i++) { const x = ((rnd(i) + t) % 1) * (W + 170) - 85, y = 40 + i * 55;
+    [[-26, 6, 22], [0, 0, 30], [28, 6, 22]].forEach(([dx, dy, r]) => { c.beginPath(); c.arc(x + dx, y + dy, r, 0, TAU); c.fill(); }); }
+  c.fillStyle = '#7bd389'; c.fillRect(0, 330, W, 30);
+  const s = Math.sin(TAU * t * 2), a = s * 0.32;
+  const hx = 180 + s * 16, hy = 132 - Math.abs(Math.cos(TAU * t * 2)) * 10;
+  c.lineCap = 'round';
+  for (const d of [-1, 1]) {
+    const ang = d * (0.65 + 0.4 * Math.sin(TAU * t * 2 + (d > 0 ? Math.PI : 0)));
+    const sx = 180 + d * 72, sy = 274, ex = sx + Math.sin(ang) * 72, ey = sy + Math.cos(ang) * 72;
+    c.strokeStyle = '#1a1423'; c.lineWidth = 28; line(c, sx, sy, ex, ey);
+    c.strokeStyle = '#ff5a7a'; c.lineWidth = 19; line(c, sx, sy, ex, ey);
+    c.fillStyle = '#f6c48f'; c.lineWidth = 4; c.strokeStyle = '#1a1423'; c.beginPath(); c.arc(ex, ey, 14, 0, TAU); c.fill(); c.stroke();
+  }
+  c.fillStyle = '#ff5a7a'; c.strokeStyle = '#1a1423'; c.lineWidth = 5;
+  roundRect(c, 102, 250, 156, 150, 44); c.fill(); c.stroke();
+  c.fillStyle = '#fff'; c.font = '28px Anton, Impact, sans-serif'; c.textAlign = 'center'; c.fillText('#1', 180, 310);
+  // spring neck
+  const bx = 180, by = 254, tx = hx, ty = hy + 92, n = 9;
+  c.strokeStyle = '#555'; c.lineWidth = 6; c.lineJoin = 'round'; c.beginPath(); c.moveTo(bx, by);
+  for (let i = 1; i <= n; i++) { const k = i / n, px = bx + (tx - bx) * k, py = by + (ty - by) * k; c.lineTo(px + (i === n ? 0 : (i % 2 ? 14 : -14)), py); }
+  c.stroke();
+  drawFace(c, hx, hy, 214, a);
+}},
+{ id: 'shades', name: 'Deal With It', e: '😎', frames: 40, draw(c, t) {
+  c.fillStyle = '#36c5c0'; c.fillRect(0, 0, W, W);
+  c.fillStyle = 'rgba(255,255,255,.18)';
+  for (let i = 0; i < 6; i++) c.fillRect(0, i * 64 + 20, W, 26);
+  const h = 290, cy = 182; drawFace(c, 180, cy, h);
+  const gw = 0.86 * h, p = gw / 24, eyePx = cy - h / 2 + st.eye * h;
+  const final = eyePx - 2.3 * p, k = Math.min(1, t / 0.5);
+  const y = -6 * p + (final + 6 * p) * k, x = 180 - gw / 2;
+  c.fillStyle = '#000'; c.fillRect(x, y, gw, p + .5);
+  const rows = [[1, 1, 10], [2, 1, 10], [3, 2, 9], [4, 3, 8]];
+  for (const [r, a, b] of rows) for (const off of [0, 12]) c.fillRect(x + (a + off) * p, y + r * p, (b - a + 1) * p + .5, p + .5);
+  c.fillStyle = '#fff';
+  for (const [r, col] of [[1, 3], [1, 4], [2, 2], [2, 3]]) for (const off of [0, 12]) c.fillRect(x + (col + off) * p, y + r * p, p + .5, p + .5);
+  return t > 0.6 ? { bottom: 'Deal with it' } : {};
+}},
+{ id: 'spin', name: 'Spin Cycle', e: '🌀', frames: 30, draw(c, t) {
+  c.fillStyle = '#ffd23f'; c.fillRect(0, 0, W, W);
+  c.save(); c.translate(180, 180); c.rotate(t * TAU / 8); c.fillStyle = '#ff8a3d';
+  for (let i = 0; i < 8; i++) { c.beginPath(); c.moveTo(0, 0); c.arc(0, 0, 400, i * TAU / 8, i * TAU / 8 + TAU / 16); c.closePath(); c.fill(); }
+  c.restore();
+  drawFace(c, 180, 180, 230 * (1 + 0.13 * Math.sin(TAU * t * 4)), t * TAU * 2);
+}},
+{ id: 'zoom', name: 'Dramatic Zoom', e: '😱', frames: 36, draw(c, t, f) {
+  const stage = Math.min(3, Math.floor(t * 4)), s = [1, 1.7, 2.6, 3.7][stage];
+  c.fillStyle = '#111'; c.fillRect(0, 0, W, W);
+  const h = 300, fy = 180 - h / 2 + st.eye * h, amp = [0, 2, 5, 9][stage];
+  const dx = (rnd(f) - .5) * 2 * amp, dy = (rnd(f + .5) - .5) * 2 * amp;
+  c.save(); c.translate(180 + dx, 180 + dy); c.scale(s, s); c.translate(-180, -fy + (stage ? 0 : 20)); drawFace(c, 180, 180, h); c.restore();
+  const g = c.createRadialGradient(180, 180, 90, 180, 180, 260); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,.85)');
+  c.fillStyle = g; c.fillRect(0, 0, W, W);
+  if (stage === 3) { c.fillStyle = 'rgba(210,0,0,.28)'; c.fillRect(0, 0, W, W); }
+  return { top: ['', 'Dun', 'Dun dun', 'Dun dun DUNNN'][stage] };
+}},
+{ id: 'disco', name: 'Disco Bounce', e: '🪩', frames: 32, draw(c, t) {
+  const beat = Math.floor(t * 8), cols = ['#ff4f8b', '#ffd23f', '#2ec4b6', '#7b5cff', '#ff8a3d'], n = 6, s = W / n;
+  for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+    c.globalAlpha = (i + j + beat) % 2 ? 1 : .55; c.fillStyle = cols[(i * 2 + j * 3 + beat) % 5];
+    c.fillRect(i * s, j * s, s + 1, s + 1);
+  }
+  c.globalAlpha = 1;
+  const g = c.createRadialGradient(180, 200, 40, 180, 200, 260); g.addColorStop(0, 'rgba(20,0,40,0)'); g.addColorStop(1, 'rgba(20,0,40,.6)');
+  c.fillStyle = g; c.fillRect(0, 0, W, W);
+  for (let i = 0; i < 10; i++) {
+    const a = Math.max(0, Math.sin(TAU * (t * 2 + rnd(i + 9)))); if (!a) continue;
+    const x = 20 + rnd(i) * 320, y = 20 + rnd(i + 3) * 200, r = (8 + rnd(i + 5) * 10) * a;
+    c.fillStyle = '#fff'; c.beginPath(); c.moveTo(x, y - r); c.quadraticCurveTo(x, y, x + r, y); c.quadraticCurveTo(x, y, x, y + r);
+    c.quadraticCurveTo(x, y, x - r, y); c.quadraticCurveTo(x, y, x, y - r); c.fill();
+  }
+  const b = Math.abs(Math.sin(TAU * t * 2)), q = (1 - b) * (1 - b), base = 338 - b * 58;
+  c.fillStyle = 'rgba(0,0,0,.35)'; c.beginPath(); c.ellipse(180, 340, 70 * (0.6 + 0.4 * (1 - b)), 12, 0, 0, TAU); c.fill();
+  c.save(); c.translate(180, base); c.rotate(Math.sin(TAU * t * 2) * 0.14); c.scale(1 + q * 0.22, 1 - q * 0.18);
+  c.drawImage(face, -122, -244, 244, 244); c.restore();
+}},
+{ id: 'rain', name: 'Face Rain', e: '🌧️', frames: 40, draw(c, t) {
+  const g = c.createLinearGradient(0, 0, 0, W); g.addColorStop(0, '#5b4bff'); g.addColorStop(1, '#c26bff');
+  c.fillStyle = g; c.fillRect(0, 0, W, W);
+  const items = [];
+  for (let i = 0; i < 15; i++) items.push({ x: 10 + rnd(i) * 340, size: 55 + rnd(i + .3) * 75, loops: 1 + Math.floor(rnd(i + .7) * 2), r0: rnd(i + .5), rot0: rnd(i + .9) * TAU, spin: rnd(i + .2) > .5 ? 1 : -1 });
+  items.sort((a, b) => a.size - b.size);
+  for (const it of items) {
+    const frac = (it.r0 + t * it.loops) % 1, y = -it.size / 2 + frac * (W + it.size);
+    drawFace(c, it.x, y, it.size, it.rot0 + t * TAU * it.spin);
+  }
+  return { top: 'Make it rain' };
+}},
+{ id: 'rage', name: 'Full Rage', e: '😡', frames: 24, draw(c, t, f) {
+  const pulse = 0.5 + 0.5 * Math.sin(TAU * t * 3);
+  const g = c.createRadialGradient(180, 190, 30, 180, 190, 280); g.addColorStop(0, '#ff3b2f'); g.addColorStop(1, '#4a0000');
+  c.fillStyle = g; c.fillRect(0, 0, W, W);
+  const dx = (rnd(f) - .5) * 20, dy = (rnd(f + .3) - .5) * 14;
+  const tc = tint.getContext('2d'); tc.clearRect(0, 0, 400, 400); tc.drawImage(face, 0, 0);
+  tc.globalCompositeOperation = 'source-atop'; tc.fillStyle = `rgba(255,0,0,${0.22 + 0.3 * pulse})`; tc.fillRect(0, 0, 400, 400);
+  tc.globalCompositeOperation = 'source-over';
+  c.fillStyle = '#fff';
+  for (const side of [-1, 1]) for (let k = 0; k < 3; k++) {
+    const ph = (t * 3 + k / 3) % 1; c.globalAlpha = .9 * (1 - ph);
+    c.beginPath(); c.arc(180 + side * (100 + ph * 40) + dx, 110 - ph * 95, 12 + ph * 22, 0, TAU); c.fill();
+  }
+  c.globalAlpha = 1;
+  drawFace(c, 180 + dx, 196 + dy, 272, (rnd(f + .7) - .5) * 0.08, 1, 1, tint);
+  c.save(); c.translate(262 + dx, 82 + dy); c.scale(1 + .25 * pulse, 1 + .25 * pulse);
+  c.strokeStyle = '#fff'; c.lineWidth = 13; c.lineCap = 'round';
+  const vein = () => { for (let q = 0; q < 4; q++) { c.save(); c.rotate(q * TAU / 4); c.beginPath(); c.moveTo(6, 22); c.quadraticCurveTo(6, 6, 22, 6); c.stroke(); c.restore(); } };
+  vein(); c.strokeStyle = '#d10000'; c.lineWidth = 7; vein(); c.restore();
+  return { bottom: 'Absolutely livid' };
+}},
+{ id: 'jelly', name: 'Jelly Wobble', e: '🍮', frames: 30, draw(c, t) {
+  c.fillStyle = '#ffb3d9'; c.fillRect(0, 0, W, W);
+  c.fillStyle = 'rgba(255,255,255,.5)'; const off = t * 40;
+  for (let r = -1; r < 11; r++) for (let q = -1; q < 11; q++) { c.beginPath(); c.arc(q * 40 + (r % 2 ? 20 : 0) + off, r * 40 + off, 7, 0, TAU); c.fill(); }
+  const w = Math.sin(TAU * t * 3), sx = 1 + .17 * w, sy = 1 - .15 * w, sk = .13 * Math.sin(TAU * t * 3 + 1.2);
+  c.fillStyle = 'rgba(120,20,70,.25)'; c.beginPath(); c.ellipse(180, 332, 96 * sx, 14, 0, 0, TAU); c.fill();
+  c.save(); c.translate(180, 334); c.transform(1, 0, sk, 1, 0, 0); c.scale(sx, sy); c.drawImage(face, -140, -280, 280, 280); c.restore();
+}},
+{ id: 'rocket', name: 'Blast Off', e: '🚀', frames: 30, draw(c, t, f) {
+  c.fillStyle = '#0b0b2b'; c.fillRect(0, 0, W, W);
+  c.strokeStyle = '#fff'; c.lineCap = 'round';
+  for (let i = 0; i < 40; i++) {
+    const loops = 1 + Math.floor(rnd(i + .4) * 3), y = ((rnd(i) + t * loops) % 1) * (W + 40) - 20;
+    c.globalAlpha = .4 + loops * .2; c.lineWidth = 2; line(c, rnd(i + .8) * W, y, rnd(i + .8) * W, y - 4 - loops * 7);
+  }
+  c.globalAlpha = 1;
+  const sx = (rnd(f) - .5) * 6, sy = (rnd(f + .2) - .5) * 4;
+  c.save(); c.translate(sx, sy);
+  // flame
+  const fl = 0.75 + rnd(f + .6) * 0.35;
+  [['#ff4f1f', 46, 95], ['#ffb02e', 32, 70], ['#fff3a0', 17, 44]].forEach(([col, rx, len]) => {
+    c.fillStyle = col; c.beginPath(); c.moveTo(180 - rx, 300); c.quadraticCurveTo(180, 300 + len * fl * 2.2, 180 + rx, 300); c.closePath(); c.fill();
+  });
+  // fins
+  c.fillStyle = '#ff4f8b'; c.strokeStyle = '#1a1423'; c.lineWidth = 5;
+  for (const d of [-1, 1]) { c.beginPath(); c.moveTo(180 + d * 70, 225); c.lineTo(180 + d * 125, 315); c.lineTo(180 + d * 60, 300); c.closePath(); c.fill(); c.stroke(); }
+  // body
+  c.save(); c.beginPath(); c.ellipse(180, 165, 88, 150, 0, 0, TAU); c.fillStyle = '#f4f1ff'; c.fill(); c.clip();
+  c.fillStyle = '#ff4f8b'; c.fillRect(0, 0, W, 62); c.fillStyle = '#d9d3f0'; c.fillRect(0, 285, W, 40); c.restore();
+  c.beginPath(); c.ellipse(180, 165, 88, 150, 0, 0, TAU); c.stroke();
+  // window
+  c.save(); c.beginPath(); c.arc(180, 160, 64, 0, TAU); c.fillStyle = '#79d5ff'; c.fill(); c.clip(); drawFace(c, 180, 168, 150); c.restore();
+  c.lineWidth = 10; c.strokeStyle = '#8f88a8'; c.beginPath(); c.arc(180, 160, 66, 0, TAU); c.stroke();
+  c.restore();
+  return { top: 'To the moon' };
+}},
+{ id: 'clones', name: 'Clone Army', e: '👯', frames: 32, draw(c, t) {
+  const cols = ['#ffd23f', '#ff8a3d'];
+  for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) { c.fillStyle = cols[(i + j) % 2]; c.fillRect(i * 120, j * 120, 120, 120); }
+  for (let j = 0; j < 3; j++) for (let i = 0; i < 3; i++) {
+    const ph = (i + j) / 6, s = Math.sin(TAU * (2 * t + ph));
+    drawFace(c, 60 + i * 120, 66 + j * 120 - Math.abs(s) * 14, 108, s * 0.22);
+  }
+}},
+{ id: 'party', name: 'Party Hat', e: '🥳', frames: 36, draw(c, t) {
+  c.fillStyle = '#7b5cff'; c.fillRect(0, 0, W, W);
+  const cols = ['#ffd23f', '#ff4f8b', '#2ec4b6', '#fff', '#ff8a3d'];
+  for (let i = 0; i < 40; i++) {
+    const loops = 1 + Math.floor(rnd(i + .1) * 2), fr = (rnd(i) + t * loops) % 1, y = fr * (W + 30) - 15;
+    const x = rnd(i + .3) * W + Math.sin(TAU * (t * loops + rnd(i + .5))) * 12;
+    c.save(); c.translate(x, y); c.rotate(rnd(i + .7) * TAU + t * TAU * loops); c.fillStyle = cols[i % 5]; c.fillRect(-4, -7, 8, 14); c.restore();
+  }
+  const h = 250, a = Math.sin(TAU * t * 2) * 0.13, by = 212 - Math.abs(Math.sin(TAU * t * 2)) * 10;
+  c.save(); c.translate(180, by); c.rotate(a);
+  c.drawImage(face, -h / 2, -h / 2, h, h);
+  c.translate(h * .06, -h / 2 + 10); c.rotate(.18);
+  const bw = h * .2, ht = h * .44;
+  c.save(); c.beginPath(); c.moveTo(-bw, 0); c.lineTo(0, -ht); c.lineTo(bw, 0); c.closePath(); c.fillStyle = '#2ec4b6'; c.fill(); c.clip();
+  c.fillStyle = '#ffd23f'; for (let k = -4; k < 6; k++) { c.beginPath(); c.moveTo(-bw * 2, k * 22); c.lineTo(bw * 2, k * 22 - 40); c.lineTo(bw * 2, k * 22 - 29); c.lineTo(-bw * 2, k * 22 + 11); c.fill(); }
+  c.restore();
+  c.strokeStyle = '#1a1423'; c.lineWidth = 4; c.beginPath(); c.moveTo(-bw, 0); c.lineTo(0, -ht); c.lineTo(bw, 0); c.closePath(); c.stroke();
+  c.fillStyle = '#ff4f8b'; c.beginPath(); c.arc(0, -ht, 13, 0, TAU); c.fill(); c.stroke();
+  c.restore();
+  return { bottom: 'Party time' };
+}},
+{ id: 'laser', name: 'Laser Eyes', e: '🔴', frames: 24, draw(c, t, f) {
+  const g = c.createRadialGradient(180, 160, 20, 180, 180, 280); g.addColorStop(0, '#3b1060'); g.addColorStop(1, '#07000f');
+  c.fillStyle = g; c.fillRect(0, 0, W, W);
+  const h = 280 * (1 + .03 * Math.sin(TAU * t * 2)), cy = 196, ey = cy - h / 2 + st.eye * h;
+  drawFace(c, 180, cy, h);
+  const fl = 0.75 + rnd(f) * 0.25;
+  for (const d of [-1, 1]) {
+    const ex = 180 + d * h * .17, tx = 180 + d * 260, ty = ey + 300;
+    c.lineCap = 'round';
+    [[34 * fl, 'rgba(255,0,40,.25)'], [16 * fl, '#ff2040'], [6, '#fff']].forEach(([w, col]) => { c.strokeStyle = col; c.lineWidth = w; line(c, ex, ey, tx, ty); });
+    const rg = c.createRadialGradient(ex, ey, 0, ex, ey, 46 * fl); rg.addColorStop(0, '#fff'); rg.addColorStop(.3, 'rgba(255,40,60,.9)'); rg.addColorStop(1, 'rgba(255,0,40,0)');
+    c.fillStyle = rg; c.beginPath(); c.arc(ex, ey, 46 * fl, 0, TAU); c.fill();
+  }
+}},
+{ id: 'sad', name: 'Sad Cloud', e: '😭', frames: 30, draw(c, t) {
+  const g = c.createLinearGradient(0, 0, 0, W); g.addColorStop(0, '#6b7a99'); g.addColorStop(1, '#a8b8d8');
+  c.fillStyle = g; c.fillRect(0, 0, W, W);
+  const h = 250, cy = 222 + Math.sin(TAU * t) * 4, ey = cy - h / 2 + st.eye * h;
+  c.strokeStyle = 'rgba(220,235,255,.8)'; c.lineWidth = 3; c.lineCap = 'round';
+  for (let i = 0; i < 22; i++) { const x = 85 + rnd(i) * 190, y = 70 + ((rnd(i + .4) + t * 2) % 1) * 300; line(c, x, y, x - 3, y + 14); }
+  const tc = tint.getContext('2d'); tc.clearRect(0, 0, 400, 400); tc.drawImage(face, 0, 0);
+  tc.globalCompositeOperation = 'source-atop'; tc.fillStyle = 'rgba(60,110,255,.28)'; tc.fillRect(0, 0, 400, 400); tc.globalCompositeOperation = 'source-over';
+  drawFace(c, 180, cy, h, Math.sin(TAU * t) * 0.04, 1, 1, tint);
+  for (const d of [-1, 1]) {
+    const ex = 180 + d * h * .17;
+    c.strokeStyle = 'rgba(120,190,255,.7)'; c.lineWidth = 7; line(c, ex, ey + 14, ex + d * 4, W);
+    for (let k = 0; k < 5; k++) {
+      const ph = (t * 2 + k / 5) % 1, y = ey + 14 + ph * (W - ey);
+      c.fillStyle = '#8fd0ff'; c.beginPath(); c.moveTo(ex, y - 14); c.quadraticCurveTo(ex + 9, y, ex, y + 7); c.quadraticCurveTo(ex - 9, y, ex, y - 14); c.fill();
+    }
+  }
+  c.fillStyle = '#5a6278';
+  [[130, 50, 34], [180, 38, 44], [232, 52, 34], [160, 66, 30], [205, 68, 30]].forEach(([x, y, r]) => { c.beginPath(); c.arc(x, y, r, 0, TAU); c.fill(); });
+  return { bottom: 'Sad times' };
+}},
+{ id: 'popart', name: 'Pop Art', e: '🎨', frames: 16, draw(c, t) {
+  const beat = Math.floor(t * 4), k = 1 - (t * 4 - beat);
+  const bgs = ['#ffd23f', '#ff4f8b', '#2ec4b6', '#7b5cff'], tints = ['#ff00aa', '#00b3ff', '#ffe600', '#ff5a00'];
+  for (let q = 0; q < 4; q++) {
+    const x = (q % 2) * 180, y = Math.floor(q / 2) * 180;
+    c.fillStyle = bgs[(q + beat) % 4]; c.fillRect(x, y, 180, 180);
+    const tc = popTints[q].getContext('2d'); tc.clearRect(0, 0, 400, 400); tc.drawImage(face, 0, 0);
+    tc.globalCompositeOperation = 'source-atop'; tc.globalAlpha = .45; tc.fillStyle = tints[(q + beat + 2) % 4]; tc.fillRect(0, 0, 400, 400);
+    tc.globalAlpha = 1; tc.globalCompositeOperation = 'source-over';
+    drawFace(c, x + 90, y + 94, 158 * (1 + .1 * k * k), 0, 1, 1, popTints[q]);
+  }
+  c.fillStyle = '#1a1423'; c.fillRect(177, 0, 6, W); c.fillRect(0, 177, W, 6);
+}},
+{ id: 'peek', name: 'Peekaboo', e: '👀', frames: 40, draw(c, t) {
+  c.fillStyle = '#2ec4b6'; c.fillRect(0, 0, W, W);
+  c.fillStyle = 'rgba(255,255,255,.15)'; for (let i = 0; i < 9; i++) c.fillRect(i * 44, 0, 22, W);
+  const ease = x => 1 - Math.pow(1 - x, 3);
+  let p; if (t < .2) p = ease(t / .2); else if (t < .62) p = 1; else if (t < .76) p = 1 - ease((t - .62) / .14); else p = 0;
+  const y = 480 - p * 270, wig = t >= .2 && t < .62 ? Math.sin(TAU * (t - .2) / .42 * 2) * .12 : 0;
+  drawFace(c, 180, y, 280, wig);
+  c.fillStyle = '#b5703d'; c.fillRect(0, 282, W, 78); c.fillStyle = '#8f5427'; c.fillRect(0, 282, W, 12);
+  c.strokeStyle = '#7a4520'; c.lineWidth = 3; for (let i = 0; i < 4; i++) line(c, 0, 312 + i * 14, W, 312 + i * 14);
+  return t >= .2 && t < .66 ? { top: 'Peekaboo' } : {};
+}},
+{ id: 'trail', name: 'Vibe Trail', e: '🌈', frames: 32, draw(c, t) {
+  c.fillStyle = `hsl(${Math.round(t * 360)},85%,62%)`; c.fillRect(0, 0, W, W);
+  for (let r = 6; r > 0; r--) { c.fillStyle = `hsla(${Math.round(t * 360 + r * 40) % 360},90%,${55 + r * 3}%,.55)`; c.beginPath(); c.arc(180, 180, r * 42, 0, TAU); c.fill(); }
+  const pos = u => [180 + 105 * Math.sin(TAU * u), 180 + 60 * Math.sin(2 * TAU * u)];
+  for (let k = 6; k >= 0; k--) {
+    const u = t - k * 0.025, [x, y] = pos(u);
+    c.globalAlpha = k ? 0.12 + (6 - k) * 0.07 : 1;
+    drawFace(c, x, y, 170, Math.sin(TAU * u) * 0.35);
+  }
+  c.globalAlpha = 1;
+  return { bottom: 'Vibe check' };
+}},
+];
+const popTints = [0, 1, 2, 3].map(() => { const x = document.createElement('canvas'); x.width = x.height = 400; return x; });
+let cur = TEMPLATES[0];
+
+const bitsEl = $('bits');
+TEMPLATES.forEach(tp => {
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'bit';
+  b.setAttribute('aria-pressed', tp === cur); b.innerHTML = `<span class="e">${tp.e}</span><span>${tp.name}</span>`;
+  b.onclick = () => { cur = tp; start = performance.now(); bitsEl.querySelectorAll('.bit').forEach(x => x.setAttribute('aria-pressed', x === b)); };
+  bitsEl.appendChild(b);
+});
+
+/* ---------- captions + render ---------- */
+const topIn = $('top'), botIn = $('bottom');
+function caption(c, text, isTop) {
+  text = (text || '').toUpperCase().trim(); if (!text) return;
+  const font = s => `${s}px Anton, Impact, "Arial Black", sans-serif`;
+  const fits = (ls, s) => { c.font = font(s); return ls.every(l => c.measureText(l).width <= W - 24); };
+  let size = 48, lines = [text];
+  while (!fits(lines, size) && size > 30) size -= 2;
+  if (!fits(lines, size)) {
+    const words = text.split(/\s+/);
+    if (words.length > 1) {
+      let best = null; c.font = font(48);
+      for (let i = 1; i < words.length; i++) {
+        const a = words.slice(0, i).join(' '), b = words.slice(i).join(' ');
+        const m = Math.max(c.measureText(a).width, c.measureText(b).width);
+        if (!best || m < best.m) best = { m, ls: [a, b] };
+      }
+      lines = best.ls; size = 48;
+    }
+    while (!fits(lines, size) && size > 14) size -= 2;
+  }
+  c.font = font(size); c.textAlign = 'center'; c.textBaseline = 'alphabetic'; c.lineJoin = 'round';
+  c.lineWidth = Math.max(3, size / 6); c.strokeStyle = '#000'; c.fillStyle = '#fff';
+  const lh = size * 1.05; let y = isTop ? 12 + size * 0.92 : W - 14 - (lines.length - 1) * lh;
+  for (const l of lines) { c.strokeText(l, 180, y); c.fillText(l, 180, y); y += lh; }
+}
+function render(c, t, tp) {
+  const f = Math.round(t * tp.frames);
+  c.save(); const d = tp.draw(c, t, f) || {}; c.restore();
+  caption(c, topIn.value || d.top, true);
+  caption(c, botIn.value || d.bottom, false);
+}
+
+const speedIn = $('speed');
+const delayCs = () => Math.max(2, Math.round(5 / +speedIn.value));
+speedIn.oninput = () => { $('speedv').textContent = (+speedIn.value) + '×'; };
+
+let start = performance.now(), lastKey = '';
+function loop(now) {
+  const d = delayCs() * 10, f = Math.floor((now - start) / d) % cur.frames;
+  const key = cur.id + f + st.ox + st.oy + st.zoom + st.rot + st.eye + topIn.value + '|' + botIn.value + src.width;
+  if (key !== lastKey) { lastKey = key; pctx.clearRect(0, 0, W, W); render(pctx, f / cur.frames, cur); }
+  requestAnimationFrame(loop);
+}
+
+/* ---------- GIF encoder ---------- */
+function medianCut(hist, max) {
+  const bins = []; for (let i = 0; i < 32768; i++) if (hist[i]) bins.push(i);
+  const ch = [i => i >> 10, i => (i >> 5) & 31, i => i & 31];
+  const mk = arr => {
+    const lo = [31, 31, 31], hi = [0, 0, 0]; let n = 0;
+    for (const i of arr) { for (let k = 0; k < 3; k++) { const v = ch[k](i); if (v < lo[k]) lo[k] = v; if (v > hi[k]) hi[k] = v; } n += hist[i]; }
+    const rg = [hi[0] - lo[0], hi[1] - lo[1], hi[2] - lo[2]], axis = rg.indexOf(Math.max(...rg));
+    return { arr, n, axis, range: rg[axis] };
+  };
+  const boxes = [mk(bins)];
+  while (boxes.length < max) {
+    let bi = -1, bs = 0;
+    boxes.forEach((b, i) => { if (b.arr.length > 1) { const sc = b.range * b.n; if (sc > bs) { bs = sc; bi = i; } } });
+    if (bi < 0) break;
+    const b = boxes[bi], fn = ch[b.axis];
+    b.arr.sort((x, y) => fn(x) - fn(y));
+    let acc = 0, cut = b.arr.length - 1;
+    for (let j = 0; j < b.arr.length - 1; j++) { acc += hist[b.arr[j]]; if (acc >= b.n / 2) { cut = j + 1; break; } }
+    boxes.splice(bi, 1, mk(b.arr.slice(0, cut)), mk(b.arr.slice(cut)));
+  }
+  return boxes.map(b => {
+    let r = 0, g = 0, bl = 0;
+    for (const i of b.arr) { const w = hist[i]; r += w * ch[0](i); g += w * ch[1](i); bl += w * ch[2](i); }
+    const k = 255 / 31 / b.n; return [Math.round(r * k), Math.round(g * k), Math.round(bl * k)];
+  });
+}
+function lzw(idx) {
+  const out = [], minSize = 8, clear = 256, eoi = 257;
+  let size = 9, next = 258, cur = 0, bits = 0, dict = new Map();
+  const emit = c => { cur |= c << bits; bits += size; while (bits >= 8) { out.push(cur & 255); cur >>>= 8; bits -= 8; } };
+  emit(clear);
+  let prefix = idx[0];
+  for (let i = 1; i < idx.length; i++) {
+    const k = idx[i], key = prefix * 256 + k, v = dict.get(key);
+    if (v !== undefined) { prefix = v; continue; }
+    emit(prefix);
+    if (next === 4096) { emit(clear); dict = new Map(); size = 9; next = 258; }
+    else { if (next >= (1 << size)) size++; dict.set(key, next++); }
+    prefix = k;
+  }
+  emit(prefix); emit(eoi);
+  if (bits > 0) out.push(cur & 255);
+  return out;
+}
+function gifHeader(pal) {
+  const h = [71, 73, 70, 56, 57, 97, W & 255, W >> 8, W & 255, W >> 8, 0xF7, 0, 0];
+  for (let i = 0; i < 256; i++) { const p = pal[i] || [0, 0, 0]; h.push(p[0], p[1], p[2]); }
+  h.push(0x21, 0xFF, 11, ...'NETSCAPE2.0'.split('').map(s => s.charCodeAt(0)), 3, 1, 0, 0, 0);
+  return new Uint8Array(h);
+}
+function frameBytes(idx, delay) {
+  const lz = lzw(idx), nb = Math.ceil(lz.length / 255);
+  const head = [0x21, 0xF9, 4, 0x04, delay & 255, delay >> 8, 0, 0, 0x2C, 0, 0, 0, 0, W & 255, W >> 8, W & 255, W >> 8, 0, 8];
+  const out = new Uint8Array(head.length + lz.length + nb + 1); out.set(head); let o = head.length;
+  for (let i = 0; i < lz.length; i += 255) { const n = Math.min(255, lz.length - i); out[o++] = n; for (let j = 0; j < n; j++) out[o++] = lz[i + j]; }
+  out[o] = 0; return out;
+}
+const tick = () => new Promise(r => setTimeout(r, 0));
+
+const makeBtn = $('make'), prog = $('prog'), bar = prog.firstElementChild;
+let lastBlob = null, lastUrl = null;
+const setProg = v => { bar.style.width = (v * 100).toFixed(1) + '%'; };
+makeBtn.onclick = async () => {
+  makeBtn.disabled = true; makeBtn.textContent = '🧪 Cooking…'; prog.style.display = 'block'; setProg(0);
+  try {
+    await fontsReady;
+    const tp = cur, N = tp.frames, delay = delayCs();
+    const cv = document.createElement('canvas'); cv.width = cv.height = W;
+    const c = cv.getContext('2d', { willReadFrequently: true });
+    const frames = [], hist = new Uint32Array(32768);
+    for (let i = 0; i < N; i++) {
+      c.clearRect(0, 0, W, W); render(c, i / N, tp);
+      const d = c.getImageData(0, 0, W, W).data; frames.push(d);
+      for (let p = 0; p < d.length; p += 8) hist[((d[p] >> 3) << 10) | ((d[p + 1] >> 3) << 5) | (d[p + 2] >> 3)]++;
+      setProg(i / N * 0.25); if (i % 4 === 3) await tick();
+    }
+    const pal = medianCut(hist, 256), np = pal.length;
+    const lut = new Int16Array(32768).fill(-1);
+    const near = k => {
+      const r = (k >> 10) * 255 / 31, g = ((k >> 5) & 31) * 255 / 31, b = (k & 31) * 255 / 31;
+      let best = 0, bd = Infinity;
+      for (let i = 0; i < np; i++) { const p = pal[i], dr = p[0] - r, dg = p[1] - g, db = p[2] - b, dd = dr * dr * 2 + dg * dg * 4 + db * db * 3; if (dd < bd) { bd = dd; best = i; } }
+      return lut[k] = best;
+    };
+    const parts = [gifHeader(pal)];
+    for (let i = 0; i < N; i++) {
+      const d = frames[i], idx = new Uint8Array(W * W);
+      for (let p = 0, q = 0; q < idx.length; p += 4, q++) {
+        const k = ((d[p] >> 3) << 10) | ((d[p + 1] >> 3) << 5) | (d[p + 2] >> 3);
+        const v = lut[k]; idx[q] = v >= 0 ? v : near(k);
+      }
+      parts.push(frameBytes(idx, delay));
+      setProg(0.25 + (i + 1) / N * 0.75); await tick();
+    }
+    parts.push(new Uint8Array([0x3B]));
+    lastBlob = new Blob(parts, { type: 'image/gif' });
+    if (lastUrl) URL.revokeObjectURL(lastUrl);
+    lastUrl = URL.createObjectURL(lastBlob);
+    $('out').src = lastUrl; $('result').style.display = 'block';
+    $('savehint').textContent = downloads ? `${(lastBlob.size / 1024 / 1024).toFixed(1)} MB · ${N} frames` : fallbackHint;
+    $('result').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  } catch (e) {
+    $('savehint').textContent = 'Something went wrong making the GIF — try again.'; $('result').style.display = 'block';
+  }
+  prog.style.display = 'none'; makeBtn.disabled = false; makeBtn.textContent = '✨ Make it again';
+};
+
+/* ---------- saving ---------- */
+const fallbackHint = 'To save: press and hold the GIF (or right-click it) and choose Save Image.';
+let downloads = null;
+// On a normal website (top-level page, no Claude host) plain downloads + native share work.
+const standalone = window.top === window && !window.claude;
+if (standalone) {
+  downloads = { save: async ({ filename, data }) => {
+    const a = document.createElement('a'); a.href = URL.createObjectURL(data); a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    return { status: 'saved' };
+  } };
+  $('save').hidden = false;
+  try {
+    if (navigator.canShare && navigator.canShare({ files: [new File([new Uint8Array(1)], 'x.gif', { type: 'image/gif' })] })) {
+      const sb = $('share'); sb.hidden = false;
+      sb.onclick = async () => {
+        if (!lastBlob) return;
+        try { await navigator.share({ files: [new File([lastBlob], `big-head-${cur.id}.gif`, { type: 'image/gif' })] }); } catch (e) {}
+      };
+    }
+  } catch (e) {}
+} else (async () => {
+  for (let i = 0; i < 40 && !(window.claude && window.claude.use); i++) await new Promise(r => setTimeout(r, 250));
+  if (window.claude && window.claude.use) { try { downloads = await window.claude.use('downloads'); } catch (e) { downloads = null; } }
+  $('save').hidden = !downloads;
+  if (lastBlob && !downloads) $('savehint').textContent = fallbackHint;
+})();
+$('save').onclick = async () => {
+  if (!downloads || !lastBlob) return;
+  try {
+    await downloads.save({ filename: `big-head-${cur.id}.gif`, data: lastBlob });
+    $('savehint').textContent = 'Saved! Now go drop it in the group chat.';
+  } catch (e) {
+    const code = e && e.code;
+    if (code === 'declined') return;
+    if (code === 'rate_limited') { $('savehint').textContent = 'One sec — try that again.'; return; }
+    $('save').hidden = true; $('savehint').textContent = fallbackHint;
+  }
+};
+
+/* ---------- boot ---------- */
+const fontsReady = (document.fonts ? Promise.all([document.fonts.load('48px Anton'), document.fonts.load('600 24px "Bricolage Grotesque"')]) : Promise.resolve()).catch(() => {});
+refresh();
+fontsReady.then(() => { drawEditor(); lastKey = ''; });
+requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
