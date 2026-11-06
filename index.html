@@ -89,6 +89,10 @@ input[type=range]{width:100%;accent-color:var(--pink);height:28px}
 .packsec:not(.open) .bits{display:none}
 .packsec .bits{margin:0 0 14px}
 .cnt{background:var(--ink);color:#fff;border-radius:99px;font-size:12px;padding:1px 8px;font-weight:800}
+#preview.draggable{touch-action:none;cursor:grab}
+#preview.draggable:active{cursor:grabbing}
+.check{display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px;margin-top:10px}
+.check input{width:20px;height:20px;accent-color:var(--pink)}
 .chatedit{border:2.5px dashed rgba(26,20,35,.35);border-radius:16px;padding:14px;margin:14px 0 4px;background:#fff8fc}
 .people{display:grid;gap:10px}
 .person{display:grid;grid-template-columns:48px 1fr auto;gap:10px;align-items:center}
@@ -183,6 +187,18 @@ footer{text-align:center;margin-top:30px;font-size:14px;opacity:.7}
       <section class="packsec"><button type="button" class="packhead">👥 Duo <span class="small">· add Friend 2 in step 1</span></button><div class="bits" id="bits5" role="group" aria-label="Duo animations"></div></section>
       <section class="packsec"><button type="button" class="packhead">💼 Strategy Manager</button><div class="bits" id="bits2" role="group" aria-label="Strategy Manager animations"></div></section>
       <section class="packsec"><button type="button" class="packhead">💘 Office Romance</button><div class="bits" id="bits4" role="group" aria-label="Office Romance animations"></div></section>
+          <div class="chatedit" id="sceneEdit" hidden>
+            <div class="label" style="margin-top:0">🖼️ Your scene</div>
+            <label class="btn block" for="bgFile">🏞️ Choose a background photo</label>
+            <input id="bgFile" type="file" accept="image/*" class="vh">
+            <p class="small" id="bgNote" style="margin:8px 0 0">👆 Drag the character on the preview to place it.</p>
+            <div class="label">Move</div>
+            <div class="chips" id="moves"></div>
+            <div class="slider" style="margin-top:12px"><label for="sceneSize">Size</label><input id="sceneSize" type="range" min="0.35" max="1.15" step="0.01" value="0.72"></div>
+            <label class="check" id="sceneDuoWrap" hidden><input type="checkbox" id="sceneDuo" checked> Put Friend 2 in the scene too</label>
+            <p class="small" style="margin:8px 0 0">Outfit &amp; hat: pick them in <b>Dress them up</b>.</p>
+            <button type="button" class="linkbtn" id="bgClear" hidden>Remove background</button>
+          </div>
           <div class="chatedit" id="chatEdit" hidden>
             <div class="label" style="margin-top:0">💬 The chat</div>
             <div class="people">
@@ -738,6 +754,42 @@ function wrapText(c, txt, maxW, maxLines) {
   if (lines.length > maxLines) { lines.length = maxLines; let l = lines[maxLines - 1]; while (l.length > 1 && c.measureText(l + '…').width > maxW) l = l.slice(0, -1); lines[maxLines - 1] = l + '…'; }
   return lines.length ? lines : [''];
 }
+/* ---------- Your Scene: character on an uploaded background ---------- */
+const scene = { bg: null, bgId: 0, x: 180, y: 338, s: 0.72, move: 'dance', duo: true };
+const mix = (a, b, u) => a.map((v, i) => v + (b[i] - v) * u);
+const MOVES = [
+  { id: 'dance', name: 'Dance', e: '🕺', hat: 'afro', pose(t, ph) { const k = .5 - .5 * Math.cos(TAU * (t * 2 + ph)), m = k * 2 - 1, up = [Math.PI * .86, -.15], hip = [.75, -1.9];
+      return { armR: mix(up, hip, k), armL: mix(hip, up, k), legL: [.12 + .1 * k, -.15 * k], legR: [.12 + .1 * (1 - k), -.15 * (1 - k)], lean: m * .12, head: -m * .15, bob: -Math.abs(Math.sin(TAU * (t * 4 + ph * 2))) * 7, dx: m * 10 }; } },
+  { id: 'wave', name: 'Wave', e: '👋', hat: 'none', pose(t, ph) { const w = Math.sin(TAU * (t * 4 + ph));
+      return { armR: [Math.PI * .8, .55 * w], armL: [.2, -.15], legL: [.08, 0], legR: [.08, 0], lean: Math.sin(TAU * (t + ph)) * .04, head: .08 + Math.sin(TAU * (t * 2 + ph)) * .05, bob: -Math.abs(Math.sin(TAU * (t * 2 + ph))) * 3 }; } },
+  { id: 'flex', name: 'Flex', e: '💪', hat: 'sweatband', pose(t, ph) { const p = .5 - .5 * Math.cos(TAU * (t * 3 + ph));
+      return { armL: [Math.PI / 2 - .05 * p, 1.35 + .35 * p], armR: [Math.PI / 2 - .05 * p, 1.35 + .35 * p], legL: [.28, -.05], legR: [.28, -.05], bulge: 1 + p * .5, sy: 1 + p * .03, head: Math.sin(TAU * (t * 3 + ph)) * .05 }; } },
+  { id: 'jacks', name: 'Jumping jacks', e: '⭐', hat: 'pigtails', pose(t, ph) { const o = .5 - .5 * Math.cos(TAU * (t * 2 + ph));
+      return { armL: [.3 + o * 2.4, -.1], armR: [.3 + o * 2.4, -.1], legL: [.06 + o * .42, 0], legR: [.06 + o * .42, 0], bob: -Math.abs(Math.sin(TAU * (t * 2 + ph))) * 22, jump: true }; } },
+  { id: 'floss', name: 'Floss', e: '🪢', hat: 'mohawk', pose(t, ph) { const q = Math.sin(TAU * (t * 2 + ph));
+      return { armR: [.12 + .5 * q, .1], armL: [.12 - .5 * q, .1], legL: [.1 + .06 * q, 0], legR: [.1 - .06 * q, 0], lean: -q * .07, head: q * .08, bob: -Math.abs(q) * 4, dx: -q * 10 }; } },
+  { id: 'run', name: 'Run in place', e: '🏃', hat: 'cap', pose(t, ph) { const a = Math.sin(TAU * (t * 3 + ph)), lift = v => Math.max(0, v);
+      return { legL: [.05, -.2 - lift(a) * .9, 1 - lift(a) * .45], legR: [.05, -.2 - lift(-a) * .9, 1 - lift(-a) * .45], armL: [.35 + a * .3, -1.3], armR: [.35 - a * .3, -1.3], bob: -Math.abs(a) * 10, lean: a * .04, head: -a * .06 }; } },
+  { id: 'power', name: 'Power pose', e: '🦸', hat: 'mullet', pose(t, ph) { const br = Math.sin(TAU * (t + ph));
+      return { armL: [.78, -2.05], armR: [.78, -2.05], legL: [.3, -.04], legR: [.3, -.04], cape: Math.sin(TAU * (t * 2 + ph)), sy: 1 + .02 * br, head: .04 * br }; } },
+];
+function drawSceneBg(c) {
+  if (scene.bg) {
+    const b = scene.bg, k = Math.max(W / b.width, W / b.height), w = b.width * k, h = b.height * k;
+    c.drawImage(b, (W - w) / 2, (W - h) / 2, w, h);
+  } else {
+    const g = c.createLinearGradient(0, 0, 0, W); g.addColorStop(0, '#8ed8ff'); g.addColorStop(.72, '#d9f4ff'); g.addColorStop(.72, '#8fd17e'); g.addColorStop(1, '#5fae55');
+    c.fillStyle = g; c.fillRect(0, 0, W, W);
+    c.fillStyle = '#ffe066'; c.beginPath(); c.arc(300, 62, 30, 0, TAU); c.fill();
+    c.fillStyle = 'rgba(255,255,255,.9)'; [[70, 70], [190, 45]].forEach(([x, y]) => { [[-22, 6, 18], [0, 0, 26], [24, 6, 18]].forEach(([dx, dy, r]) => { c.beginPath(); c.arc(x + dx, y + dy, r, 0, TAU); c.fill(); }); });
+  }
+}
+function drawSceneCharacter(c, t, x, feetY, sc, img, sk, outfit, ph) {
+  const mv = MOVES.find(m => m.id === scene.move) || MOVES[0], P = mv.pose(t, ph), k = sc / .82;
+  const lift = P.bob ? -P.bob * k : 0;
+  c.fillStyle = 'rgba(0,0,0,.28)'; c.beginPath(); c.ellipse(x + (P.dx || 0) * k, feetY + 4 * k, Math.max(10, (46 - (P.jump ? lift * .6 : 0)) * k), 9 * k, 0, 0, TAU); c.fill();
+  drawCharacter(c, x + (P.dx || 0) * k, feetY - 106 * sc, sc, { ...P, bob: (P.bob || 0) * k, img, skin: sk, outfit });
+}
 const CHAT_DEFAULT = ['hey :)', 'quick question', 'are you the mute button?', 'bc you leave me speechless'], CHAT_REPLY = 'is this about the Q3 deck??';
 let chat = { msgs: ['', '', '', ''], reply: '' };
 try { const sv = JSON.parse(localStorage.getItem('tgif-chat') || 'null'); if (sv && Array.isArray(sv.msgs)) chat = { msgs: [0, 1, 2, 3].map(i => String(sv.msgs[i] || '')), reply: String(sv.reply || '') }; } catch (e) {}
@@ -996,6 +1048,14 @@ const TEMPLATES = [
   return { bottom: 'Vibe check' };
 }},
 /* ----- Full Body pack ----- */
+{ id: 'scene', pack: 'body', name: 'Your Scene', e: '🖼️', frames: 32, draw(c, t) {
+  drawSceneBg(c);
+  autoHat = (MOVES.find(m => m.id === scene.move) || MOVES[0]).hat;
+  const two = duo() && scene.duo, gapX = 158 * scene.s;
+  const oi = OUTFITS.findIndex(o => o.id === outfitSel), o2 = OUTFITS[(oi + 1) % OUTFITS.length].id;
+  if (two) drawSceneCharacter(c, t, scene.x + gapX / 2, scene.y, scene.s, face2, slots[1].skin, o2, .25);
+  drawSceneCharacter(c, t, two ? scene.x - gapX / 2 : scene.x, scene.y, scene.s, face, slots[0].skin, outfitSel, 0);
+}},
 { id: 'dance', pack: 'body', defaultHat: 'afro', name: 'Dance Floor', e: '🕺', frames: 32, draw(c, t) {
   const beat = Math.floor(t * 8), cols = ['#ff4f8b', '#ffd23f', '#2ec4b6', '#7b5cff', '#ff8a3d'];
   c.fillStyle = '#1b1030'; c.fillRect(0, 0, W, W);
@@ -1467,7 +1527,7 @@ let cur = TEMPLATES[0];
 
 const bitsEl = $('bits');
 TEMPLATES.forEach(tp => {
-  const b = document.createElement('button'); b.type = 'button'; b.className = 'bit';
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'bit'; b.dataset.id = tp.id;
   b.setAttribute('aria-pressed', tp === cur); b.innerHTML = `<span class="e">${tp.e}</span><span>${tp.name}</span>`;
   b.onclick = () => { cur = tp; start = performance.now(); document.querySelectorAll('.bit').forEach(x => x.setAttribute('aria-pressed', x === b)); syncPanels(); };
   ({ strategy: $('bits2'), body: $('bits3'), romance: $('bits4'), duo: $('bits5') }[tp.pack] || bitsEl).appendChild(b);
@@ -1778,6 +1838,38 @@ $('surprise').onclick = () => {
   b.click(); openPackOf(b); b.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 };
 
+/* ---------- Your Scene editor ---------- */
+MOVES.forEach(m => {
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.dataset.id = m.id;
+  b.innerHTML = `<span>${m.e}</span> ${m.name}`; b.setAttribute('aria-pressed', m.id === scene.move);
+  b.onclick = () => { scene.move = m.id; $('moves').querySelectorAll('.chip').forEach(x => x.setAttribute('aria-pressed', x === b)); };
+  $('moves').appendChild(b);
+});
+$('sceneSize').oninput = e => { scene.s = +e.target.value; };
+$('sceneDuo').onchange = e => { scene.duo = e.target.checked; };
+$('bgFile').addEventListener('change', e => {
+  const f = e.target.files[0]; if (!f) return;
+  const url = URL.createObjectURL(f), im = new Image();
+  im.onload = () => {
+    const k = Math.min(1, 1400 / Math.max(im.naturalWidth, im.naturalHeight)), c = document.createElement('canvas');
+    c.width = Math.round(im.naturalWidth * k); c.height = Math.round(im.naturalHeight * k);
+    c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
+    scene.bg = c; scene.bgId++; URL.revokeObjectURL(url);
+    $('bgClear').hidden = false; $('bgNote').textContent = '👆 Drag the character on the preview to place it.';
+    const sb = document.querySelector('.bit[data-id="scene"]'); if (cur.id !== 'scene' && sb) { sb.click(); openPackOf(sb); }
+  };
+  im.onerror = () => { URL.revokeObjectURL(url); $('bgNote').textContent = "Couldn't read that photo — try a JPG or PNG."; };
+  im.src = url; e.target.value = '';
+});
+$('bgClear').onclick = () => { scene.bg = null; scene.bgId++; $('bgClear').hidden = true; };
+{ // drag the character around on the preview
+  let drag = null;
+  const pt = e => { const r = pv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * W }; };
+  pv.addEventListener('pointerdown', e => { if (cur.id !== 'scene') return; e.preventDefault(); pv.setPointerCapture(e.pointerId); const q = pt(e); drag = { dx: scene.x - q.x, dy: scene.y - q.y }; });
+  pv.addEventListener('pointermove', e => { if (!drag) return; const q = pt(e); scene.x = Math.max(0, Math.min(W, q.x + drag.dx)); scene.y = Math.max(140, Math.min(W + 60, q.y + drag.dy)); });
+  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(n => pv.addEventListener(n, () => { drag = null; }));
+}
+
 /* ---------- Teams DM chat editor ---------- */
 const saveChat = () => { try { localStorage.setItem('tgif-chat', JSON.stringify(chat)); } catch (e) {} };
 CHAT_DEFAULT.forEach((d, i) => {
@@ -1796,6 +1888,7 @@ $('ceReset').onclick = () => { chat = { msgs: ['', '', '', ''], reply: '' }; sav
   $('ceAdd' + (i + 1)).onclick = () => { setActive(i); showPage('face'); if (i === 1 && !slots[1].has) setDetect('Add a photo of the person they’re chatting with.'); };
 });
 function syncPanels() {
+  const sc = cur.id === 'scene'; $('sceneEdit').hidden = !sc; pv.classList.toggle('draggable', sc); $('sceneDuoWrap').hidden = !duo();
   const show = cur.id === 'teamsdm'; $('chatEdit').hidden = !show; if (!show) return;
   $('cePhoto1').style.backgroundImage = `url(${face.toDataURL('image/png')})`;
   const p2 = $('cePhoto2'); p2.style.backgroundImage = duo() ? `url(${face2.toDataURL('image/png')})` : ''; p2.textContent = duo() ? '' : '?';
@@ -1874,7 +1967,7 @@ speedIn.oninput = () => { $('speedv').textContent = (+speedIn.value) + '×'; };
 let start = performance.now(), lastKey = '';
 function loop(now) {
   const d = delayCs() * 10, f = Math.floor((now - start) / d) % cur.frames;
-  const key = cur.id + JSON.stringify(chat) + hatSel + outfitSel + skin + active + slots[1].has + N1() + '|' + N2() + slots[0].st.eye + slots[1].st.eye + f + st.ox + st.oy + st.zoom + st.rot + st.eye + topIn.value + '|' + botIn.value + src.width;
+  const key = cur.id + JSON.stringify(chat) + [scene.x, scene.y, scene.s, scene.move, scene.duo, scene.bgId].join() + hatSel + outfitSel + skin + active + slots[1].has + N1() + '|' + N2() + slots[0].st.eye + slots[1].st.eye + f + st.ox + st.oy + st.zoom + st.rot + st.eye + topIn.value + '|' + botIn.value + src.width;
   if (key !== lastKey) { lastKey = key; pctx.clearRect(0, 0, W, W); render(pctx, f / cur.frames, cur); }
   requestAnimationFrame(loop);
 }
