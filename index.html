@@ -52,6 +52,19 @@ input[type=range]{width:100%;accent-color:var(--pink);height:28px}
 .fthumb .pick img{width:100%;height:100%;object-fit:cover;display:block}
 .fthumb .pick[aria-pressed=true]{box-shadow:0 0 0 4px var(--yellow)}
 .fthumb .del{position:absolute;top:-6px;right:-6px;width:26px;height:26px;border-radius:50%;background:#fff;border:2px solid var(--ink);font:800 14px/1 'Bricolage Grotesque',sans-serif;color:var(--ink);cursor:pointer;display:grid;place-items:center;padding:0}
+.slots{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 12px}
+.slot{font:inherit;font-weight:800;font-size:15px;color:var(--ink);border:2.5px solid var(--ink);border-radius:12px;background:#fff;padding:9px 6px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.slot .small{font-weight:600;font-size:12px}
+.slot[aria-pressed=true]{background:var(--teal);box-shadow:3px 3px 0 var(--ink)}
+.pickbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:14px 0 4px}
+.packsec{border-top:3px solid rgba(26,20,35,.12)}
+.packhead{width:100%;display:flex;align-items:center;gap:8px;background:none;border:0;font:inherit;font-weight:800;font-size:17px;color:var(--ink);padding:12px 2px;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+.packhead .small{font-weight:600;font-size:13px}
+.packhead::after{content:'▾';margin-left:auto;font-size:18px;transition:transform .2s}
+.packsec:not(.open) .packhead::after{transform:rotate(-90deg)}
+.packsec:not(.open) .bits{display:none}
+.packsec .bits{margin:0 0 14px}
+.cnt{background:var(--ink);color:#fff;border-radius:99px;font-size:12px;padding:1px 8px;font-weight:800}
 .col{display:grid;gap:22px;align-content:start}
 .label{font-weight:800;font-size:16px;margin:12px 0 8px}
 .label .small{font-weight:600;font-size:13px}
@@ -90,9 +103,12 @@ footer{text-align:center;margin-top:30px;font-size:14px;opacity:.7}
     <div class="col">
     <section class="card">
       <h2><span class="num">1</span> Grab their face</h2>
+      <div class="slots"><button type="button" class="slot" id="slot0" aria-pressed="true">👤 Friend 1</button><button type="button" class="slot" id="slot1" aria-pressed="false">👥 Friend 2 <span class="small">optional</span></button></div>
       <label class="btn pink block" for="file">📸 Choose a photo</label>
       <input id="file" type="file" accept="image/*" class="vh">
       <p class="err" id="err"></p>
+      <label class="field" for="fname">Their name <span class="small">· shows up in the jokes</span></label>
+      <input id="fname" type="text" maxlength="24" placeholder="e.g. Dave" autocomplete="off">
       <div id="savedWrap" hidden>
         <div class="label">Saved faces <span class="small">· tap one to use it</span></div>
         <div class="faces" id="faces"></div>
@@ -120,13 +136,12 @@ footer{text-align:center;margin-top:30px;font-size:14px;opacity:.7}
     <section class="card preview-card">
       <h2><span class="num">3</span> Pick the bit</h2>
       <canvas id="preview" width="360" height="360" aria-label="Live preview"></canvas>
-      <div class="bits" id="bits" role="group" aria-label="Animation"></div>
-      <h3 class="pack">🕺 Full Body pack</h3>
-      <div class="bits" id="bits3" role="group" aria-label="Full body animations"></div>
-      <h3 class="pack">💼 Strategy Manager pack</h3>
-      <div class="bits" id="bits2" role="group" aria-label="Strategy Manager animations"></div>
-      <h3 class="pack">💘 Office Romance pack</h3>
-      <div class="bits" id="bits4" role="group" aria-label="Office Romance animations"></div>
+      <div class="pickbar"><span class="small">Tap a pack to open it</span><button class="btn ghost" id="surprise" type="button">🎲 Surprise me</button></div>
+      <section class="packsec open"><button type="button" class="packhead">😂 Classics</button><div class="bits" id="bits" role="group" aria-label="Classic animations"></div></section>
+      <section class="packsec"><button type="button" class="packhead">🕺 Full Body</button><div class="bits" id="bits3" role="group" aria-label="Full body animations"></div></section>
+      <section class="packsec"><button type="button" class="packhead">👥 Duo <span class="small">· add Friend 2 in step 1</span></button><div class="bits" id="bits5" role="group" aria-label="Duo animations"></div></section>
+      <section class="packsec"><button type="button" class="packhead">💼 Strategy Manager</button><div class="bits" id="bits2" role="group" aria-label="Strategy Manager animations"></div></section>
+      <section class="packsec"><button type="button" class="packhead">💘 Office Romance</button><div class="bits" id="bits4" role="group" aria-label="Office Romance animations"></div></section>
       <div class="fields">
         <div><label class="field" for="top">Top text</label><input id="top" type="text" maxlength="60" placeholder="optional"></div>
         <div><label class="field" for="bottom">Bottom text</label><input id="bottom" type="text" maxlength="60" placeholder="optional"></div>
@@ -155,11 +170,12 @@ const ed = $('editor'), ectx = ed.getContext('2d');
 const pv = $('preview'), pctx = pv.getContext('2d');
 
 /* ---------- face source ---------- */
-function makePlaceholder() {
+function makePlaceholder(v = 0) {
+  const SKIN = v ? '#c68a5e' : '#f2b98a', HAIR = v ? '#e0b030' : '#4a2c1d';
   const c = document.createElement('canvas'); c.width = c.height = 600;
   const g = c.getContext('2d');
-  g.fillStyle = '#f2b98a'; g.fillRect(0, 0, 600, 600);
-  g.fillStyle = '#4a2c1d'; g.beginPath(); g.ellipse(300, 120, 230, 95, 0, 0, TAU); g.fill();
+  g.fillStyle = SKIN; g.fillRect(0, 0, 600, 600);
+  g.fillStyle = HAIR; g.beginPath(); g.ellipse(300, 120, 230, 95, 0, 0, TAU); g.fill();
   g.beginPath(); g.ellipse(170, 170, 60, 70, -.4, 0, TAU); g.fill();
   g.fillStyle = '#ff9a9a'; [[205, 340], [395, 340]].forEach(([x, y]) => { g.beginPath(); g.ellipse(x, y, 34, 22, 0, 0, TAU); g.fill(); });
   [[240, 268], [360, 268]].forEach(([x, y], i) => {
@@ -167,7 +183,7 @@ function makePlaceholder() {
     g.fillStyle = '#1a1423'; g.beginPath(); g.arc(x + (i ? -6 : 6), y + 4, 15, 0, TAU); g.fill();
     g.fillStyle = '#fff'; g.beginPath(); g.arc(x + (i ? -1 : 11), y - 2, 5, 0, TAU); g.fill();
   });
-  g.strokeStyle = '#4a2c1d'; g.lineWidth = 12; g.lineCap = 'round';
+  g.strokeStyle = HAIR; g.lineWidth = 12; g.lineCap = 'round';
   g.beginPath(); g.moveTo(205, 215); g.quadraticCurveTo(240, 195, 272, 212); g.stroke();
   g.beginPath(); g.moveTo(328, 205); g.quadraticCurveTo(362, 190, 395, 215); g.stroke();
   g.fillStyle = '#7a1f2b'; g.beginPath(); g.moveTo(225, 365); g.quadraticCurveTo(300, 470, 375, 365); g.closePath(); g.fill();
@@ -175,8 +191,8 @@ function makePlaceholder() {
   g.strokeStyle = '#c47b52'; g.lineWidth = 8; g.beginPath(); g.moveTo(300, 290); g.lineTo(290, 325); g.lineTo(308, 328); g.stroke();
   return c;
 }
-let src = makePlaceholder();
-const st = { ox: 0, oy: 0, zoom: 1, rot: 0, eye: 0.42 };
+let src = makePlaceholder(0);
+let st = { ox: 0, oy: 0, zoom: 1, rot: 0, eye: 0.42 };
 let baseScale = 1;
 const fitBase = () => { baseScale = Math.max(600 / src.width, 600 / src.height); };
 fitBase();
@@ -203,8 +219,18 @@ function drawEditor() {
 }
 
 const face = document.createElement('canvas'); face.width = face.height = 400;
+const face2 = document.createElement('canvas'); face2.width = face2.height = 400;
+const slots = [
+  { src, st, face, name: '', skin: '#f2b98a', has: false },
+  { src: makePlaceholder(1), st: { ox: 0, oy: 0, zoom: 1, rot: 0, eye: 0.42 }, face: face2, name: '', skin: '#c68a5e', has: false },
+];
+let active = 0, curEye = 0.42;
+const eyeOf = img => (slots.find(sl => sl.face === img) || slots[0]).st.eye;
+const E1 = () => slots[0].st.eye;
+const N1 = () => slots[0].name.trim(), N2 = () => slots[1].name.trim();
+const duo = () => slots[1].has, F2 = () => slots[1].has ? face2 : face;
 function updateFace() {
-  const c = face.getContext('2d');
+  const c = slots[active].face.getContext('2d');
   c.clearRect(0, 0, 400, 400);
   c.save(); drawSrc(c, 200, 200); c.restore();
   c.save(); c.globalCompositeOperation = 'destination-in';
@@ -235,11 +261,12 @@ function floatHearts(c, t, n, x0, x1, yB, color, alpha = 1, speed = 1) {
   }
   c.globalAlpha = 1;
 }
-function faceCircle(c, x, y, r, bg) {
+function faceCircle(c, x, y, r, bg, img = face) {
   c.save(); c.beginPath(); c.arc(x, y, r, 0, TAU); c.clip(); c.fillStyle = bg; c.fillRect(x - r, y - r, r * 2, r * 2);
-  const prev = hatOK; hatOK = false; drawFace(c, x, y + r * .18, r * 2.5); hatOK = prev; c.restore();
+  const prev = hatOK; hatOK = false; drawFace(c, x, y + r * .18, r * 2.5, 0, 1, 1, img); hatOK = prev; c.restore();
 }
 function faceAt(c, h, img = face) {
+  curEye = eyeOf(img);
   if (hatOK) drawHair(c, h, true);
   c.drawImage(img, -h / 2, -h / 2, h, h);
   if (hatOK) { drawHair(c, h, false); drawHat(c, h); }
@@ -249,11 +276,11 @@ function faceAt(c, h, img = face) {
 let skin = '#f2b98a', hatSel = 'auto', autoHat = 'none', outfitSel = 'suit', hatOK = true, hatT = 0;
 function sampleSkin() {
   try {
-    const d = face.getContext('2d').getImageData(120, 225, 160, 50).data; let r = 0, g = 0, b = 0, n = 0;
+    const d = slots[active].face.getContext('2d').getImageData(120, 225, 160, 50).data; let r = 0, g = 0, b = 0, n = 0;
     for (let y = 0; y < 50; y++) for (const x of [...Array(40).keys(), ...Array(40).keys()].map((v, i) => i < 40 ? v : v + 120)) {
       const p = (y * 160 + x) * 4; if (d[p + 3] < 250) continue; r += d[p]; g += d[p + 1]; b += d[p + 2]; n++;
     }
-    if (n > 50) skin = `rgb(${r / n | 0},${g / n | 0},${b / n | 0})`;
+    if (n > 50) { const v = `rgb(${r / n | 0},${g / n | 0},${b / n | 0})`; slots[active].skin = v; if (active === 0) skin = v; }
   } catch (e) {}
 }
 const INK = '#1a1423';
@@ -307,7 +334,7 @@ function drawHair(c, h, back) {
       break;
     case 'clown':
       if (back) { const cols = ['#ff2e88', '#ffd23f', '#18b26b', '#2b59c3', '#ff8a3d', '#7b5cff']; for (const d of [-1, 1]) [[.42, -.3, .12], [.5, -.12, .13], [.44, .06, .11]].forEach(([x, y, r], i) => puffs([[d * x, y, r]], cols[(i + (d > 0 ? 3 : 0)) % 6])); }
-      else { c.beginPath(); c.arc(0, (-.5 + st.eye + .2) * h, .065 * h, 0, TAU); fs(c, '#ff2020', lw); c.fillStyle = 'rgba(255,255,255,.7)'; c.beginPath(); c.arc(-.02 * h, (-.5 + st.eye + .18) * h, .018 * h, 0, TAU); c.fill(); }
+      else { c.beginPath(); c.arc(0, (-.5 + curEye + .2) * h, .065 * h, 0, TAU); fs(c, '#ff2020', lw); c.fillStyle = 'rgba(255,255,255,.7)'; c.beginPath(); c.arc(-.02 * h, (-.5 + curEye + .18) * h, .018 * h, 0, TAU); c.fill(); }
       break;
     case 'sweatband':
       if (!back) { const y = -.38 * h; c.beginPath(); c.moveTo(-.29 * h, y); c.quadraticCurveTo(0, y - .05 * h, .29 * h, y); c.lineTo(.29 * h, y + .09 * h); c.quadraticCurveTo(0, y + .04 * h, -.29 * h, y + .09 * h); c.closePath(); fs(c, '#fff', lw);
@@ -417,7 +444,7 @@ function limb(c, x, y, a1, l1, a2, l2, w, c1, c2, side) {
 }
 // pose: armL/armR [shoulder, elbow], legL/legR [hip, knee, thighScale], lean, head, bob, cape, bulge, sx, sy, hipX
 function drawCharacter(c, x, y, s, P) {
-  const o = OUTFITS.find(v => v.id === outfitSel) || OUTFITS[0];
+  const o = OUTFITS.find(v => v.id === (P.outfit || outfitSel)) || OUTFITS[0], prevSkin = skin; if (P.skin) skin = P.skin;
   c.save(); c.translate(x + (P.hipX || 0), y + (P.bob || 0)); c.scale(s * (P.sx || 1), s * (P.sy || 1)); c.rotate(P.lean || 0);
   if (o.cape) {
     const fl = (P.cape || 0) * 12;
@@ -437,8 +464,8 @@ function drawCharacter(c, x, y, s, P) {
     if (P.bulge) { const mx = (side * 35 + ex) / 2, my = (-82 + ey) / 2 - 9; c.beginPath(); c.arc(mx, my, 12 * P.bulge, Math.PI, TAU); fs(c, col(o.upper), 3); }
     c.beginPath(); c.arc(hx, hy, 11, 0, TAU); fs(c, skin, 3.5);
   }
-  drawFace(c, 0, -92 - 60, 164, P.head || 0);
-  c.restore();
+  drawFace(c, 0, -92 - 60, 164, P.head || 0, 1, 1, P.img || face);
+  c.restore(); skin = prevSkin;
 }
 
 /* ---------- editor interaction ---------- */
@@ -481,8 +508,9 @@ $('file').addEventListener('change', e => {
     const c = document.createElement('canvas');
     c.width = Math.round(im.naturalWidth * s); c.height = Math.round(im.naturalHeight * s);
     c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
-    src = c; URL.revokeObjectURL(url); resetView(); activeFace = null; renderFaces(); $('saveNote').textContent = 'Check the fit, then tap 💾 Save this face to keep it.';
+    src = c; slots[active].src = c; slots[active].has = true; URL.revokeObjectURL(url); resetView(); activeFace = null; renderFaces(); $('saveNote').textContent = 'Check the fit, then tap 💾 Save this face to keep it.';
     autoFind(c);
+    if (active === 1 && cur.pack !== 'duo' && !['teamsdm', 'clones', 'cameraon'].includes(cur.id)) { const b = document.querySelector('#bits5 .bit'); if (b) { b.click(); openPackOf(b); } }
   };
   im.onerror = () => { URL.revokeObjectURL(url); $('err').textContent = "Couldn't read that photo — try a JPG or PNG."; };
   im.src = url;
@@ -494,6 +522,136 @@ function roundRect(c, x, y, w, h, r) { c.beginPath(); c.moveTo(x + r, y); c.arcT
 function line(c, x1, y1, x2, y2) { c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.stroke(); }
 const tint = document.createElement('canvas'); tint.width = tint.height = 400;
 
+function bearBg(c, t, f) {
+  c.fillStyle = '#0f1420'; c.fillRect(0, 0, W, W);
+  c.strokeStyle = 'rgba(120,140,180,.13)'; c.lineWidth = 1;
+  for (let x = 0; x < W; x += 36) line(c, x, 26, x, W);
+  for (let y = 26; y < W; y += 36) line(c, 0, y, W, y);
+  // falling candlestick chart: scrolls left while the camera follows it down, so the loop is seamless
+  const N = 8, sp = 30, slope = 21, u = t * N;
+  const mid = [];
+  for (let i = -2; i < 16 + N; i++) {
+    const k = i - u, x = 14 + k * sp; if (x < -20 || x > W + 20) continue;
+    const r = ((i % N) + N) % N, y = 58 + k * slope + (rnd(r) - .5) * 26;
+    const up = rnd(r + .5) > .78, bh = 10 + rnd(r + .3) * 22;
+    const o = up ? y + bh * .3 : y - bh * .5, cl = up ? y - bh * .4 : y + bh * .5;
+    c.strokeStyle = up ? '#2fd67a' : '#ff4d5e'; c.lineWidth = 2; line(c, x, Math.min(o, cl) - 8 - rnd(r + .7) * 10, x, Math.max(o, cl) + 8 + rnd(r + .9) * 10);
+    c.fillStyle = up ? '#2fd67a' : '#ff4d5e'; c.fillRect(x - 8, Math.min(o, cl), 16, Math.abs(cl - o));
+    mid.push([x, y]);
+  }
+  c.strokeStyle = 'rgba(255,77,94,.55)'; c.lineWidth = 3; c.beginPath(); mid.forEach(([x, y], i) => i ? c.lineTo(x, y) : c.moveTo(x, y)); c.stroke();
+  // pulsing down arrow
+  const pa = .35 + .3 * (.5 + .5 * Math.sin(TAU * t * 4));
+  c.fillStyle = `rgba(255,40,60,${pa})`; c.beginPath();
+  c.moveTo(300, 52); c.lineTo(330, 52); c.lineTo(330, 110); c.lineTo(350, 110); c.lineTo(315, 150); c.lineTo(280, 110); c.lineTo(300, 110); c.closePath(); c.fill();
+  // ticker tape
+  c.fillStyle = '#2a0d10'; c.fillRect(0, 0, W, 26);
+  const tape = 'STONKS ▼ 69.0%     VIBES ▼ 42.0%     T$ ▼ 99.9%     SYNERGY ▼ 12.3%     MORALE ▼ 88.8%     ';
+  c.font = '800 14px "Bricolage Grotesque", sans-serif'; c.textAlign = 'left'; c.textBaseline = 'middle'; c.fillStyle = '#ff4d5e';
+  const tw = c.measureText(tape).width, tx = -t * tw;
+  for (let x = tx; x < W; x += tw) c.fillText(tape, x, 14);
+  c.textBaseline = 'alphabetic';
+}
+function bearBody(c, t, f, img = face) {
+  // the bear
+  const sway = Math.sin(TAU * t * 2), cx = 180 + sway * 10, BR = '#7a4a2a', LT = '#c9935f';
+  c.save(); c.translate(180, 372); c.scale(.8, .8); c.translate(-180, -372);
+  c.save(); c.translate(cx, 0); c.rotate(sway * .04); c.translate(-cx, 0);
+  for (const d of [-1, 1]) { c.beginPath(); c.ellipse(cx + d * 42, 344, 28, 18, 0, 0, TAU); fs(c, BR, 4); c.beginPath(); c.ellipse(cx + d * 42, 346, 13, 9, 0, 0, TAU); c.fillStyle = LT; c.fill(); }
+  c.beginPath(); c.ellipse(cx, 286, 80, 70, 0, 0, TAU); fs(c, BR, 4);
+  c.beginPath(); c.ellipse(cx, 298, 48, 46, 0, 0, TAU); c.fillStyle = LT; c.fill();
+  for (const d of [-1, 1]) {
+    const a = Math.PI * .78 + .38 * Math.sin(TAU * t * 4 + (d > 0 ? Math.PI : 0));
+    const sx = cx + d * 62, sy = 248, ex = sx + d * Math.sin(a) * 74, ey = sy + Math.cos(a) * 74;
+    c.lineCap = 'round'; c.strokeStyle = INK; c.lineWidth = 36; line(c, sx, sy, ex, ey);
+    c.strokeStyle = BR; c.lineWidth = 29; line(c, sx, sy, ex, ey);
+    c.beginPath(); c.arc(ex, ey, 19, 0, TAU); fs(c, BR, 4);
+    c.strokeStyle = '#f4ead2'; c.lineWidth = 3.5;
+    for (let k = -1; k <= 1; k++) { const ca = Math.atan2(ey - sy, ex - sx) + k * .45; line(c, ex + Math.cos(ca) * 15, ey + Math.sin(ca) * 15, ex + Math.cos(ca) * 26, ey + Math.sin(ca) * 26); }
+  }
+  for (const d of [-1, 1]) { c.beginPath(); c.arc(cx + d * 64, 74, 27, 0, TAU); fs(c, BR, 4); c.beginPath(); c.arc(cx + d * 64, 74, 14, 0, TAU); c.fillStyle = LT; c.fill(); }
+  c.beginPath(); c.arc(cx, 146, 90, 0, TAU); fs(c, BR, 4);
+  drawFace(c, cx, 150, 170, -sway * .08, 1, 1, img);
+  c.restore();
+  // panic sweat
+  c.fillStyle = '#8fd0ff';
+  for (const d of [-1, 1]) for (let k = 0; k < 2; k++) {
+    const ph = (t * 4 + k / 2 + (d > 0 ? .25 : 0)) % 1, x = cx + d * (95 + ph * 50), y = 110 + ph * 30 - Math.sin(Math.PI * ph) * 35;
+    c.globalAlpha = 1 - ph; c.beginPath(); c.moveTo(x, y - 9); c.quadraticCurveTo(x + 6, y, x, y + 5); c.quadraticCurveTo(x - 6, y, x, y - 9); c.fill();
+  }
+  c.globalAlpha = 1; c.restore();
+}
+function bullBg(c, t, f) {
+  c.fillStyle = '#0c1a14'; c.fillRect(0, 0, W, W);
+  c.strokeStyle = 'rgba(120,200,160,.12)'; c.lineWidth = 1;
+  for (let x = 0; x < W; x += 36) line(c, x, 26, x, W);
+  for (let y = 26; y < W; y += 36) line(c, 0, y, W, y);
+  // rising candlestick chart: scrolls left while the camera follows it up, so the loop is seamless
+  const N = 8, sp = 30, slope = 21, u = t * N, mid = [];
+  for (let i = -2; i < 16 + N; i++) {
+    const k = i - u, x = 14 + k * sp; if (x < -20 || x > W + 20) continue;
+    const r = ((i % N) + N) % N, y = 312 - k * slope + (rnd(r + 40) - .5) * 26;
+    const down = rnd(r + 40.5) > .78, bh = 10 + rnd(r + 40.3) * 22;
+    const o = down ? y - bh * .3 : y + bh * .5, cl = down ? y + bh * .4 : y - bh * .5;
+    const colr = down ? '#ff4d5e' : '#2fd67a';
+    c.strokeStyle = colr; c.lineWidth = 2; line(c, x, Math.min(o, cl) - 8 - rnd(r + 40.7) * 10, x, Math.max(o, cl) + 8 + rnd(r + 40.9) * 10);
+    c.fillStyle = colr; c.fillRect(x - 8, Math.min(o, cl), 16, Math.abs(cl - o));
+    mid.push([x, y]);
+  }
+  c.strokeStyle = 'rgba(47,214,122,.55)'; c.lineWidth = 3; c.beginPath(); mid.forEach(([x, y], i) => i ? c.lineTo(x, y) : c.moveTo(x, y)); c.stroke();
+  // pulsing up arrow
+  const pa = .35 + .3 * (.5 + .5 * Math.sin(TAU * t * 4));
+  c.fillStyle = `rgba(47,214,122,${pa})`; c.beginPath();
+  c.moveTo(315, 40); c.lineTo(350, 80); c.lineTo(330, 80); c.lineTo(330, 138); c.lineTo(300, 138); c.lineTo(300, 80); c.lineTo(280, 80); c.closePath(); c.fill();
+  // ticker tape
+  c.fillStyle = '#0d2a1c'; c.fillRect(0, 0, W, 26);
+  const tape = 'STONKS ▲ 69.0%     VIBES ▲ 42.0%     T$ ▲ 99.9%     SYNERGY ▲ 12.3%     MORALE ▲ 88.8%     ';
+  c.font = '800 14px "Bricolage Grotesque", sans-serif'; c.textAlign = 'left'; c.textBaseline = 'middle'; c.fillStyle = '#2fd67a';
+  const tw = c.measureText(tape).width, tx = -t * tw;
+  for (let x = tx; x < W; x += tw) c.fillText(tape, x, 14);
+  c.textBaseline = 'alphabetic';
+  // flying cash (behind the bull)
+  for (let i = 0; i < 10; i++) {
+    const loops = 1 + Math.floor(rnd(i + 50.1) * 2), fr = (rnd(i + 50.2) + t * loops) % 1;
+    const x = 10 + rnd(i + 50.3) * 340 + Math.sin(TAU * (fr + rnd(i + 50))) * 14, y = 30 + fr * 360;
+    c.save(); c.translate(x, y); c.rotate(rnd(i + 50.6) * TAU + t * TAU * loops); c.scale(1, .55 + .45 * Math.cos(TAU * (t * loops * 2 + rnd(i + 50.8))));
+    c.fillStyle = '#7fd18b'; c.strokeStyle = '#2d7a3e'; c.lineWidth = 2; c.fillRect(-15, -8, 30, 16); c.strokeRect(-15, -8, 30, 16);
+    c.fillStyle = '#2d7a3e'; c.font = '800 11px "Bricolage Grotesque", sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('$', 0, .5);
+    c.restore();
+  }
+  c.textBaseline = 'alphabetic';
+}
+function bullBody(c, t, f, img = face) {
+  // the bull
+  const bob = Math.abs(Math.sin(TAU * t * 2)), cx = 180, BR = '#4a2f22', LT = '#b98a62';
+  c.save(); c.translate(180, 372); c.scale(.8, .8); c.translate(-180, -372 + bob * -10);
+  for (const d of [-1, 1]) { c.beginPath(); c.ellipse(cx + d * 42, 344, 28, 18, 0, 0, TAU); fs(c, BR, 4);
+    c.beginPath(); c.ellipse(cx + d * 42, 352, 22, 9, 0, 0, TAU); fs(c, '#2a2a30', 3); line(c, cx + d * 42, 344, cx + d * 42, 360); }
+  c.beginPath(); c.ellipse(cx, 286, 82, 70, 0, 0, TAU); fs(c, BR, 4);
+  c.beginPath(); c.ellipse(cx, 298, 48, 46, 0, 0, TAU); c.fillStyle = LT; c.fill();
+  for (const d of [-1, 1]) {
+    const pump = .5 + .5 * Math.sin(TAU * t * 4 + (d > 0 ? Math.PI : 0));
+    const a = Math.PI * (.66 + .1 * pump), sx = cx + d * 64, sy = 250, len = 74 + 20 * pump;
+    const ex = sx + d * Math.sin(a) * len, ey = sy + Math.cos(a) * len;
+    c.lineCap = 'round'; c.strokeStyle = INK; c.lineWidth = 36; line(c, sx, sy, ex, ey);
+    c.strokeStyle = BR; c.lineWidth = 29; line(c, sx, sy, ex, ey);
+    c.beginPath(); c.arc(ex, ey, 18, 0, TAU); fs(c, '#2a2a30', 4);
+    c.strokeStyle = '#55555f'; c.lineWidth = 3; line(c, ex, ey - 16, ex, ey + 16);
+  }
+  for (const d of [-1, 1]) {
+    c.beginPath(); c.moveTo(cx + d * 60, 98); c.quadraticCurveTo(cx + d * 150, 92, cx + d * 132, 20); c.quadraticCurveTo(cx + d * 124, 64, cx + d * 66, 72); c.closePath(); fs(c, '#f4ead2', 4);
+    c.save(); c.translate(cx + d * 92, 112); c.rotate(d * .5); c.beginPath(); c.ellipse(0, 0, 26, 13, 0, 0, TAU); fs(c, BR, 4);
+    c.beginPath(); c.ellipse(0, 0, 14, 6, 0, 0, TAU); c.fillStyle = LT; c.fill(); c.restore();
+  }
+  c.beginPath(); c.arc(cx, 146, 90, 0, TAU); fs(c, BR, 4);
+  drawFace(c, cx, 150, 170, Math.sin(TAU * t * 2) * .06, 1, 1, img);
+  // victory sparkles
+  c.fillStyle = '#ffd23f';
+  for (let i = 0; i < 6; i++) { const a = i / 6 * TAU + t * TAU, r = 118 + 8 * Math.sin(TAU * t * 4 + i), s = 6 + 3 * Math.sin(TAU * t * 4 + i * 2);
+    const x = cx + Math.cos(a) * r, y = 150 + Math.sin(a) * r * .8;
+    c.beginPath(); c.moveTo(x, y - s * 2); c.quadraticCurveTo(x, y, x + s * 2, y); c.quadraticCurveTo(x, y, x, y + s * 2); c.quadraticCurveTo(x, y, x - s * 2, y); c.quadraticCurveTo(x, y, x, y - s * 2); c.fill(); }
+  c.restore();
+}
 const TEMPLATES = [
 { id: 'bobble', name: 'Bobble­head', e: '🤪', frames: 30, draw(c, t) {
   const g = c.createLinearGradient(0, 0, 0, W); g.addColorStop(0, '#79d5ff'); g.addColorStop(1, '#dcf7ff');
@@ -527,7 +685,7 @@ const TEMPLATES = [
   c.fillStyle = 'rgba(255,255,255,.18)';
   for (let i = 0; i < 6; i++) c.fillRect(0, i * 64 + 20, W, 26);
   const h = 290, cy = 182; drawFace(c, 180, cy, h);
-  const gw = 0.68 * h, p = gw / 24, eyePx = cy - h / 2 + st.eye * h;
+  const gw = 0.68 * h, p = gw / 24, eyePx = cy - h / 2 + E1() * h;
   const final = eyePx - 2.3 * p, k = Math.min(1, t / 0.5);
   const y = -6 * p + (final + 6 * p) * k, x = 180 - gw / 2;
   c.fillStyle = '#000'; c.fillRect(x, y, gw, p + .5);
@@ -547,7 +705,7 @@ const TEMPLATES = [
 { id: 'zoom', name: 'Dramatic Zoom', e: '😱', frames: 36, draw(c, t, f) {
   const stage = Math.min(3, Math.floor(t * 4)), s = [1, 1.7, 2.6, 3.7][stage];
   c.fillStyle = '#111'; c.fillRect(0, 0, W, W);
-  const h = 300, fy = 180 - h / 2 + st.eye * h, amp = [0, 2, 5, 9][stage];
+  const h = 300, fy = 180 - h / 2 + E1() * h, amp = [0, 2, 5, 9][stage];
   const dx = (rnd(f) - .5) * 2 * amp, dy = (rnd(f + .5) - .5) * 2 * amp;
   c.save(); c.translate(180 + dx, 180 + dy); c.scale(s, s); c.translate(-180, -fy + (stage ? 0 : 20)); drawFace(c, 180, 180, h); c.restore();
   const g = c.createRadialGradient(180, 180, 90, 180, 180, 260); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,.85)');
@@ -649,7 +807,7 @@ const TEMPLATES = [
   for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) { c.fillStyle = cols[(i + j) % 2]; c.fillRect(i * 120, j * 120, 120, 120); }
   for (let j = 0; j < 3; j++) for (let i = 0; i < 3; i++) {
     const ph = (i + j) / 6, s = Math.sin(TAU * (2 * t + ph));
-    drawFace(c, 60 + i * 120, 66 + j * 120 - Math.abs(s) * 14, 108, s * 0.22);
+    drawFace(c, 60 + i * 120, 66 + j * 120 - Math.abs(s) * 14, 108, s * 0.22, 1, 1, (i + j) % 2 && duo() ? face2 : face);
   }
 }},
 { id: 'party', name: 'Party Hat', e: '🥳', frames: 36, noHat: true, draw(c, t) {
@@ -676,7 +834,7 @@ const TEMPLATES = [
 { id: 'laser', name: 'Laser Eyes', e: '🔴', frames: 24, draw(c, t, f) {
   const g = c.createRadialGradient(180, 160, 20, 180, 180, 280); g.addColorStop(0, '#3b1060'); g.addColorStop(1, '#07000f');
   c.fillStyle = g; c.fillRect(0, 0, W, W);
-  const h = 280 * (1 + .03 * Math.sin(TAU * t * 2)), cy = 196, ey = cy - h / 2 + st.eye * h;
+  const h = 280 * (1 + .03 * Math.sin(TAU * t * 2)), cy = 196, ey = cy - h / 2 + E1() * h;
   drawFace(c, 180, cy, h);
   const fl = 0.75 + rnd(f) * 0.25;
   for (const d of [-1, 1]) {
@@ -690,7 +848,7 @@ const TEMPLATES = [
 { id: 'sad', name: 'Sad Cloud', e: '😭', frames: 30, draw(c, t) {
   const g = c.createLinearGradient(0, 0, 0, W); g.addColorStop(0, '#6b7a99'); g.addColorStop(1, '#a8b8d8');
   c.fillStyle = g; c.fillRect(0, 0, W, W);
-  const h = 250, cy = 222 + Math.sin(TAU * t) * 4, ey = cy - h / 2 + st.eye * h;
+  const h = 250, cy = 222 + Math.sin(TAU * t) * 4, ey = cy - h / 2 + E1() * h;
   c.strokeStyle = 'rgba(220,235,255,.8)'; c.lineWidth = 3; c.lineCap = 'round';
   for (let i = 0; i < 22; i++) { const x = 85 + rnd(i) * 190, y = 70 + ((rnd(i + .4) + t * 2) % 1) * 300; line(c, x, y, x - 3, y + 14); }
   const tc = tint.getContext('2d'); tc.clearRect(0, 0, 400, 400); tc.drawImage(face, 0, 0);
@@ -976,131 +1134,11 @@ const TEMPLATES = [
   return on ? { bottom: "Let's double-click on that" } : {};
 }},
 { id: 'bear', pack: 'strategy', name: 'Bear Market', e: '🐻', frames: 32, draw(c, t, f) {
-  c.fillStyle = '#0f1420'; c.fillRect(0, 0, W, W);
-  c.strokeStyle = 'rgba(120,140,180,.13)'; c.lineWidth = 1;
-  for (let x = 0; x < W; x += 36) line(c, x, 26, x, W);
-  for (let y = 26; y < W; y += 36) line(c, 0, y, W, y);
-  // falling candlestick chart: scrolls left while the camera follows it down, so the loop is seamless
-  const N = 8, sp = 30, slope = 21, u = t * N;
-  const mid = [];
-  for (let i = -2; i < 16 + N; i++) {
-    const k = i - u, x = 14 + k * sp; if (x < -20 || x > W + 20) continue;
-    const r = ((i % N) + N) % N, y = 58 + k * slope + (rnd(r) - .5) * 26;
-    const up = rnd(r + .5) > .78, bh = 10 + rnd(r + .3) * 22;
-    const o = up ? y + bh * .3 : y - bh * .5, cl = up ? y - bh * .4 : y + bh * .5;
-    c.strokeStyle = up ? '#2fd67a' : '#ff4d5e'; c.lineWidth = 2; line(c, x, Math.min(o, cl) - 8 - rnd(r + .7) * 10, x, Math.max(o, cl) + 8 + rnd(r + .9) * 10);
-    c.fillStyle = up ? '#2fd67a' : '#ff4d5e'; c.fillRect(x - 8, Math.min(o, cl), 16, Math.abs(cl - o));
-    mid.push([x, y]);
-  }
-  c.strokeStyle = 'rgba(255,77,94,.55)'; c.lineWidth = 3; c.beginPath(); mid.forEach(([x, y], i) => i ? c.lineTo(x, y) : c.moveTo(x, y)); c.stroke();
-  // pulsing down arrow
-  const pa = .35 + .3 * (.5 + .5 * Math.sin(TAU * t * 4));
-  c.fillStyle = `rgba(255,40,60,${pa})`; c.beginPath();
-  c.moveTo(300, 52); c.lineTo(330, 52); c.lineTo(330, 110); c.lineTo(350, 110); c.lineTo(315, 150); c.lineTo(280, 110); c.lineTo(300, 110); c.closePath(); c.fill();
-  // ticker tape
-  c.fillStyle = '#2a0d10'; c.fillRect(0, 0, W, 26);
-  const tape = 'STONKS ▼ 69.0%     VIBES ▼ 42.0%     T$ ▼ 99.9%     SYNERGY ▼ 12.3%     MORALE ▼ 88.8%     ';
-  c.font = '800 14px "Bricolage Grotesque", sans-serif'; c.textAlign = 'left'; c.textBaseline = 'middle'; c.fillStyle = '#ff4d5e';
-  const tw = c.measureText(tape).width, tx = -t * tw;
-  for (let x = tx; x < W; x += tw) c.fillText(tape, x, 14);
-  c.textBaseline = 'alphabetic';
-  // the bear
-  const sway = Math.sin(TAU * t * 2), cx = 180 + sway * 10, BR = '#7a4a2a', LT = '#c9935f';
-  c.save(); c.translate(180, 372); c.scale(.8, .8); c.translate(-180, -372);
-  c.save(); c.translate(cx, 0); c.rotate(sway * .04); c.translate(-cx, 0);
-  for (const d of [-1, 1]) { c.beginPath(); c.ellipse(cx + d * 42, 344, 28, 18, 0, 0, TAU); fs(c, BR, 4); c.beginPath(); c.ellipse(cx + d * 42, 346, 13, 9, 0, 0, TAU); c.fillStyle = LT; c.fill(); }
-  c.beginPath(); c.ellipse(cx, 286, 80, 70, 0, 0, TAU); fs(c, BR, 4);
-  c.beginPath(); c.ellipse(cx, 298, 48, 46, 0, 0, TAU); c.fillStyle = LT; c.fill();
-  for (const d of [-1, 1]) {
-    const a = Math.PI * .78 + .38 * Math.sin(TAU * t * 4 + (d > 0 ? Math.PI : 0));
-    const sx = cx + d * 62, sy = 248, ex = sx + d * Math.sin(a) * 74, ey = sy + Math.cos(a) * 74;
-    c.lineCap = 'round'; c.strokeStyle = INK; c.lineWidth = 36; line(c, sx, sy, ex, ey);
-    c.strokeStyle = BR; c.lineWidth = 29; line(c, sx, sy, ex, ey);
-    c.beginPath(); c.arc(ex, ey, 19, 0, TAU); fs(c, BR, 4);
-    c.strokeStyle = '#f4ead2'; c.lineWidth = 3.5;
-    for (let k = -1; k <= 1; k++) { const ca = Math.atan2(ey - sy, ex - sx) + k * .45; line(c, ex + Math.cos(ca) * 15, ey + Math.sin(ca) * 15, ex + Math.cos(ca) * 26, ey + Math.sin(ca) * 26); }
-  }
-  for (const d of [-1, 1]) { c.beginPath(); c.arc(cx + d * 64, 74, 27, 0, TAU); fs(c, BR, 4); c.beginPath(); c.arc(cx + d * 64, 74, 14, 0, TAU); c.fillStyle = LT; c.fill(); }
-  c.beginPath(); c.arc(cx, 146, 90, 0, TAU); fs(c, BR, 4);
-  drawFace(c, cx, 150, 170, -sway * .08);
-  c.restore();
-  // panic sweat
-  c.fillStyle = '#8fd0ff';
-  for (const d of [-1, 1]) for (let k = 0; k < 2; k++) {
-    const ph = (t * 4 + k / 2 + (d > 0 ? .25 : 0)) % 1, x = cx + d * (95 + ph * 50), y = 110 + ph * 30 - Math.sin(Math.PI * ph) * 35;
-    c.globalAlpha = 1 - ph; c.beginPath(); c.moveTo(x, y - 9); c.quadraticCurveTo(x + 6, y, x, y + 5); c.quadraticCurveTo(x - 6, y, x, y - 9); c.fill();
-  }
-  c.globalAlpha = 1; c.restore();
+  bearBg(c, t, f); bearBody(c, t, f);
   return { bottom: 'Bear market' };
 }},
 { id: 'bull', pack: 'strategy', name: 'Bull Market', e: '🐂', frames: 32, draw(c, t, f) {
-  c.fillStyle = '#0c1a14'; c.fillRect(0, 0, W, W);
-  c.strokeStyle = 'rgba(120,200,160,.12)'; c.lineWidth = 1;
-  for (let x = 0; x < W; x += 36) line(c, x, 26, x, W);
-  for (let y = 26; y < W; y += 36) line(c, 0, y, W, y);
-  // rising candlestick chart: scrolls left while the camera follows it up, so the loop is seamless
-  const N = 8, sp = 30, slope = 21, u = t * N, mid = [];
-  for (let i = -2; i < 16 + N; i++) {
-    const k = i - u, x = 14 + k * sp; if (x < -20 || x > W + 20) continue;
-    const r = ((i % N) + N) % N, y = 312 - k * slope + (rnd(r + 40) - .5) * 26;
-    const down = rnd(r + 40.5) > .78, bh = 10 + rnd(r + 40.3) * 22;
-    const o = down ? y - bh * .3 : y + bh * .5, cl = down ? y + bh * .4 : y - bh * .5;
-    const colr = down ? '#ff4d5e' : '#2fd67a';
-    c.strokeStyle = colr; c.lineWidth = 2; line(c, x, Math.min(o, cl) - 8 - rnd(r + 40.7) * 10, x, Math.max(o, cl) + 8 + rnd(r + 40.9) * 10);
-    c.fillStyle = colr; c.fillRect(x - 8, Math.min(o, cl), 16, Math.abs(cl - o));
-    mid.push([x, y]);
-  }
-  c.strokeStyle = 'rgba(47,214,122,.55)'; c.lineWidth = 3; c.beginPath(); mid.forEach(([x, y], i) => i ? c.lineTo(x, y) : c.moveTo(x, y)); c.stroke();
-  // pulsing up arrow
-  const pa = .35 + .3 * (.5 + .5 * Math.sin(TAU * t * 4));
-  c.fillStyle = `rgba(47,214,122,${pa})`; c.beginPath();
-  c.moveTo(315, 40); c.lineTo(350, 80); c.lineTo(330, 80); c.lineTo(330, 138); c.lineTo(300, 138); c.lineTo(300, 80); c.lineTo(280, 80); c.closePath(); c.fill();
-  // ticker tape
-  c.fillStyle = '#0d2a1c'; c.fillRect(0, 0, W, 26);
-  const tape = 'STONKS ▲ 69.0%     VIBES ▲ 42.0%     T$ ▲ 99.9%     SYNERGY ▲ 12.3%     MORALE ▲ 88.8%     ';
-  c.font = '800 14px "Bricolage Grotesque", sans-serif'; c.textAlign = 'left'; c.textBaseline = 'middle'; c.fillStyle = '#2fd67a';
-  const tw = c.measureText(tape).width, tx = -t * tw;
-  for (let x = tx; x < W; x += tw) c.fillText(tape, x, 14);
-  c.textBaseline = 'alphabetic';
-  // flying cash (behind the bull)
-  for (let i = 0; i < 10; i++) {
-    const loops = 1 + Math.floor(rnd(i + 50.1) * 2), fr = (rnd(i + 50.2) + t * loops) % 1;
-    const x = 10 + rnd(i + 50.3) * 340 + Math.sin(TAU * (fr + rnd(i + 50))) * 14, y = 30 + fr * 360;
-    c.save(); c.translate(x, y); c.rotate(rnd(i + 50.6) * TAU + t * TAU * loops); c.scale(1, .55 + .45 * Math.cos(TAU * (t * loops * 2 + rnd(i + 50.8))));
-    c.fillStyle = '#7fd18b'; c.strokeStyle = '#2d7a3e'; c.lineWidth = 2; c.fillRect(-15, -8, 30, 16); c.strokeRect(-15, -8, 30, 16);
-    c.fillStyle = '#2d7a3e'; c.font = '800 11px "Bricolage Grotesque", sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('$', 0, .5);
-    c.restore();
-  }
-  c.textBaseline = 'alphabetic';
-  // the bull
-  const bob = Math.abs(Math.sin(TAU * t * 2)), cx = 180, BR = '#4a2f22', LT = '#b98a62';
-  c.save(); c.translate(180, 372); c.scale(.8, .8); c.translate(-180, -372 + bob * -10);
-  for (const d of [-1, 1]) { c.beginPath(); c.ellipse(cx + d * 42, 344, 28, 18, 0, 0, TAU); fs(c, BR, 4);
-    c.beginPath(); c.ellipse(cx + d * 42, 352, 22, 9, 0, 0, TAU); fs(c, '#2a2a30', 3); line(c, cx + d * 42, 344, cx + d * 42, 360); }
-  c.beginPath(); c.ellipse(cx, 286, 82, 70, 0, 0, TAU); fs(c, BR, 4);
-  c.beginPath(); c.ellipse(cx, 298, 48, 46, 0, 0, TAU); c.fillStyle = LT; c.fill();
-  for (const d of [-1, 1]) {
-    const pump = .5 + .5 * Math.sin(TAU * t * 4 + (d > 0 ? Math.PI : 0));
-    const a = Math.PI * (.66 + .1 * pump), sx = cx + d * 64, sy = 250, len = 74 + 20 * pump;
-    const ex = sx + d * Math.sin(a) * len, ey = sy + Math.cos(a) * len;
-    c.lineCap = 'round'; c.strokeStyle = INK; c.lineWidth = 36; line(c, sx, sy, ex, ey);
-    c.strokeStyle = BR; c.lineWidth = 29; line(c, sx, sy, ex, ey);
-    c.beginPath(); c.arc(ex, ey, 18, 0, TAU); fs(c, '#2a2a30', 4);
-    c.strokeStyle = '#55555f'; c.lineWidth = 3; line(c, ex, ey - 16, ex, ey + 16);
-  }
-  for (const d of [-1, 1]) {
-    c.beginPath(); c.moveTo(cx + d * 60, 98); c.quadraticCurveTo(cx + d * 150, 92, cx + d * 132, 20); c.quadraticCurveTo(cx + d * 124, 64, cx + d * 66, 72); c.closePath(); fs(c, '#f4ead2', 4);
-    c.save(); c.translate(cx + d * 92, 112); c.rotate(d * .5); c.beginPath(); c.ellipse(0, 0, 26, 13, 0, 0, TAU); fs(c, BR, 4);
-    c.beginPath(); c.ellipse(0, 0, 14, 6, 0, 0, TAU); c.fillStyle = LT; c.fill(); c.restore();
-  }
-  c.beginPath(); c.arc(cx, 146, 90, 0, TAU); fs(c, BR, 4);
-  drawFace(c, cx, 150, 170, Math.sin(TAU * t * 2) * .06);
-  // victory sparkles
-  c.fillStyle = '#ffd23f';
-  for (let i = 0; i < 6; i++) { const a = i / 6 * TAU + t * TAU, r = 118 + 8 * Math.sin(TAU * t * 4 + i), s = 6 + 3 * Math.sin(TAU * t * 4 + i * 2);
-    const x = cx + Math.cos(a) * r, y = 150 + Math.sin(a) * r * .8;
-    c.beginPath(); c.moveTo(x, y - s * 2); c.quadraticCurveTo(x, y, x + s * 2, y); c.quadraticCurveTo(x, y, x, y + s * 2); c.quadraticCurveTo(x, y, x - s * 2, y); c.quadraticCurveTo(x, y, x, y - s * 2); c.fill(); }
-  c.restore();
+  bullBg(c, t, f); bullBody(c, t, f);
   return { bottom: 'Bull market' };
 }},
 /* ----- Office Romance pack ----- */
@@ -1112,7 +1150,7 @@ const TEMPLATES = [
   c.save(); c.beginPath(); roundRect(c, 14, 10, 332, 214, 14); c.clip(); c.fillStyle = '#5b5fc7'; c.fillRect(14, 10, 332, 36); c.restore();
   faceCircle(c, 36, 28, 12, '#ffd1e6');
   c.fillStyle = '#18b26b'; c.beginPath(); c.arc(45, 37, 4.5, 0, TAU); c.fill(); c.strokeStyle = '#5b5fc7'; c.lineWidth = 2; c.stroke();
-  c.fillStyle = '#fff'; c.font = '800 14px "Bricolage Grotesque", sans-serif'; c.textAlign = 'left'; c.textBaseline = 'middle'; c.fillText('Your Crush', 56, 24);
+  c.fillStyle = '#fff'; c.font = '800 14px "Bricolage Grotesque", sans-serif'; c.textAlign = 'left'; c.textBaseline = 'middle'; c.fillText(N1() || 'Your Crush', 56, 24, 200);
   c.font = '600 11px "Bricolage Grotesque", sans-serif'; c.fillStyle = 'rgba(255,255,255,.8)'; c.fillText('Available · typing with intent', 56, 37);
   const msgs = [['hey :)', 0, .04], ['quick question', 0, .16], ['are you a Teams update?', 0, .3], ["bc you just restarted my heart", 0, .46], ['is this about the Q3 deck??', 1, .7]];
   let slot = 0;
@@ -1126,17 +1164,20 @@ const TEMPLATES = [
     }
     c.font = '600 13px "Bricolage Grotesque", sans-serif';
     const w = c.measureText(txt).width + 22, pop = Math.min(1, (t - at) / .03);
-    const bx = me ? 336 - w : 52;
+    const bx = me ? (duo() ? 312 : 336) - w : 52;
     c.save(); c.translate(me ? bx + w : bx, y + 13); c.scale(pop, pop); c.translate(-(me ? bx + w : bx), -(y + 13));
     c.fillStyle = me ? '#5b5fc7' : '#f0f0f5'; c.beginPath(); roundRect(c, bx, y, w, 26, 13); c.fill();
     c.fillStyle = me ? '#fff' : INK; c.fillText(txt, bx + 11, y + 13.5); c.restore();
-    if (!me) faceCircle(c, 34, y + 13, 11, '#ffd1e6');
+    if (!me) faceCircle(c, 34, y + 13, 11, '#ffd1e6'); else if (duo()) faceCircle(c, 326, y + 13, 11, '#e3e4fa', face2);
     slot++;
   }
   c.textBaseline = 'alphabetic';
   const blush = t > .46 ? 1 : 0;
-  drawFace(c, 180, 300 + Math.sin(TAU * t * 2) * 4, 150, Math.sin(TAU * t * 2) * .05);
-  if (blush) { c.fillStyle = 'rgba(255,60,120,.28)'; for (const d of [-1, 1]) { c.beginPath(); c.ellipse(180 + d * 34, 300 + 150 * (st.eye - .5) + 40, 16, 9, 0, 0, TAU); c.fill(); } }
+  const bob = Math.sin(TAU * t * 2), hh = duo() ? 136 : 150;
+  for (const [hx, im] of (duo() ? [[110, face], [250, face2]] : [[180, face]])) {
+    drawFace(c, hx, 300 + bob * 4, hh, bob * .05, 1, 1, im);
+    if (blush) { c.fillStyle = 'rgba(255,60,120,.28)'; for (const d of [-1, 1]) { c.beginPath(); c.ellipse(hx + d * hh * .23, 300 + hh * (eyeOf(im) - .5) + hh * .27, 16, 9, 0, 0, TAU); c.fill(); } }
+  }
 }},
 { id: 'cameraon', pack: 'romance', name: 'Camera On', e: '📹', frames: 40, draw(c, t) {
   c.fillStyle = '#1f1f24'; c.fillRect(0, 0, W, W);
@@ -1147,12 +1188,14 @@ const TEMPLATES = [
   c.restore();
   const pulse = .5 + .5 * Math.sin(TAU * t * 4);
   c.strokeStyle = `rgba(255,79,139,${.6 + .4 * pulse})`; c.lineWidth = 4; c.beginPath(); roundRect(c, 10, 10, 340, 230, 12); c.stroke();
-  c.fillStyle = 'rgba(20,20,30,.7)'; c.beginPath(); roundRect(c, 18, 210, 140, 22, 6); c.fill();
+  const lab = (N1() || 'Your Crush') + ' (camera on!)'; c.font = '700 12px "Bricolage Grotesque", sans-serif';
+  c.fillStyle = 'rgba(20,20,30,.7)'; c.beginPath(); roundRect(c, 18, 210, Math.min(320, c.measureText(lab).width + 16), 22, 6); c.fill();
   c.fillStyle = '#fff'; c.font = '700 12px "Bricolage Grotesque", sans-serif'; c.textAlign = 'left'; c.textBaseline = 'middle';
-  c.fillText('Your Crush (camera on!)', 26, 221.5);
+  c.fillText(lab, 26, 221.5, 304);
   [['JD', '#6b7a99'], ['KP', '#7a6b99'], ['MR', '#6b998a']].forEach(([ini, col], i) => {
     const x = 10 + i * 116, y = 248;
     c.fillStyle = '#2e2e36'; c.beginPath(); roundRect(c, x, y, 108, 102, 10); c.fill();
+    if (i === 0 && duo()) { c.save(); c.beginPath(); roundRect(c, x, y, 108, 102, 10); c.clip(); c.fillStyle = '#ffc2dc'; c.fillRect(x, y, 108, 102); drawFace(c, x + 54, y + 52, 96, 0, 1, 1, face2); c.restore(); return; }
     c.fillStyle = col; c.beginPath(); c.arc(x + 54, y + 44, 24, 0, TAU); c.fill();
     c.fillStyle = '#fff'; c.font = '800 15px "Bricolage Grotesque", sans-serif'; c.textAlign = 'center'; c.fillText(ini, x + 54, y + 45);
     c.fillStyle = 'rgba(255,255,255,.55)'; c.font = '600 10px "Bricolage Grotesque", sans-serif'; c.fillText('camera off', x + 54, y + 86);
@@ -1175,7 +1218,7 @@ const TEMPLATES = [
   c.strokeStyle = '#ff4f8b'; c.lineWidth = 8; c.beginPath(); c.arc(92, 104, 63, Math.PI * .1, Math.PI * .9); c.stroke();
   c.fillStyle = '#ff4f8b'; c.beginPath(); roundRect(c, 40, 160, 104, 22, 11); c.fill();
   c.fillStyle = '#fff'; c.font = '800 11.5px "Bricolage Grotesque", sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('#OPENTOLOVE', 92, 171.5);
-  c.textAlign = 'left'; c.fillStyle = INK; c.font = '800 19px "Bricolage Grotesque", sans-serif'; c.fillText('Certified Catch', 30, 206);
+  c.textAlign = 'left'; c.fillStyle = INK; c.font = '800 19px "Bricolage Grotesque", sans-serif'; c.fillText(N1() || 'Certified Catch', 30, 206, 300);
   c.font = '600 12.5px "Bricolage Grotesque", sans-serif'; c.fillStyle = '#444';
   c.fillText('Seeking long-term synergy (romantic)', 30, 226);
   c.fillStyle = '#888'; c.fillText('500+ connections · 0 dates · DMs open', 30, 244);
@@ -1199,7 +1242,7 @@ const TEMPLATES = [
   faceCircle(c, 180, 80, 50, '#ffe0ec');
   c.strokeStyle = '#fff'; c.lineWidth = 5; c.beginPath(); c.arc(180, 80, 52, 0, TAU); c.stroke();
   c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = INK; c.font = '800 16px "Bricolage Grotesque", sans-serif';
-  c.fillText('Your Crush wants to connect', 180, 150);
+  c.fillText((N1() || 'Your Crush') + ' wants to connect', 180, 150, 290);
   c.fillStyle = '#555'; c.font = 'italic 600 12px "Bricolage Grotesque", sans-serif';
   c.fillText('"I\'d like to add you to my professional', 180, 176); c.fillText('network... and my heart."', 180, 193);
   const accepted = t >= .55, press = t >= .5 && t < .55;
@@ -1228,6 +1271,7 @@ const TEMPLATES = [
   c.save(); c.beginPath(); roundRect(c, 16, 16, 328, 270, 14); c.clip(); c.fillStyle = '#2b59c3'; c.fillRect(16, 16, 328, 34); c.restore();
   c.fillStyle = '#fff'; c.font = '700 13px "Bricolage Grotesque", sans-serif'; c.textAlign = 'left'; c.textBaseline = 'middle'; c.fillText('Meeting invite', 30, 33.5);
   faceCircle(c, 288, 100, 40, '#ffe0ec'); c.strokeStyle = '#2b59c3'; c.lineWidth = 3; c.beginPath(); c.arc(288, 100, 41, 0, TAU); c.stroke();
+  c.fillStyle = '#555'; c.font = '700 11px "Bricolage Grotesque", sans-serif'; c.textAlign = 'center'; c.fillText(N1() || 'Organizer', 288, 156, 100); c.textAlign = 'left';
   c.fillStyle = INK; c.font = '800 26px "Bricolage Grotesque", sans-serif'; c.fillText('Dinner? ', 30, 78);
   heart(c, 140, 80, 13, '#ff4f8b');
   c.font = '600 12.5px "Bricolage Grotesque", sans-serif'; c.fillStyle = '#444';
@@ -1255,13 +1299,65 @@ const TEMPLATES = [
   floatHearts(c, t, 12, 0, W, W, 'rgba(255,255,255,.55)', 1);
   const h = 270, cy = 176 + Math.sin(TAU * t * 2) * 5, rot = Math.sin(TAU * t) * .07;
   drawFace(c, 180, cy, h, rot);
-  const ey = -h / 2 + st.eye * h, beat = 1 + .22 * Math.max(0, Math.sin(TAU * t * 4));
+  const ey = -h / 2 + E1() * h, beat = 1 + .22 * Math.max(0, Math.sin(TAU * t * 4));
   c.save(); c.translate(180, cy); c.rotate(rot);
   c.fillStyle = 'rgba(255,60,120,.3)'; for (const d of [-1, 1]) { c.beginPath(); c.ellipse(d * h * .19, ey + h * .13, h * .07, h * .04, 0, 0, TAU); c.fill(); }
   for (const d of [-1, 1]) heart(c, d * h * .15, ey + h * .02, h * .085 * beat, '#ff1f5a', INK);
   c.restore();
   for (let i = 0; i < 6; i++) { const a = i / 6 * TAU + t * TAU; heart(c, 180 + Math.cos(a) * 150, cy + Math.sin(a) * 60 - 80, 12, '#fff'); }
   return { bottom: "When they say 'per my last email'" };
+}},
+/* ----- Duo pack (uses Friend 2's face when there is one) ----- */
+{ id: 'faceoff', pack: 'duo', name: 'Face Off', e: '⚔️', frames: 30, draw(c, t, f) {
+  c.fillStyle = '#e63946'; c.fillRect(0, 0, W, W);
+  c.fillStyle = '#2b59c3'; c.beginPath(); c.moveTo(212, 0); c.lineTo(W, 0); c.lineTo(W, W); c.lineTo(148, W); c.closePath(); c.fill();
+  c.strokeStyle = 'rgba(255,255,255,.28)'; c.lineWidth = 3; c.lineCap = 'round';
+  for (let i = 0; i < 10; i++) { const y = 20 + i * 36, o = ((t * 4 + i * .37) % 1) * 60; line(c, -20 + o, y, 50 + o, y); line(c, W + 20 - o, y + 18, W - 50 - o, y + 18); }
+  const lunge = Math.max(0, Math.sin(TAU * t * 2)), sh = (rnd(f) - .5) * 6;
+  drawFace(c, 92 + lunge * 16 + sh, 168, 172, .1, 1, 1, face);
+  drawFace(c, 268 - lunge * 16 - sh, 168, 172, -.1, 1, 1, F2());
+  const vs = 1 + .15 * Math.abs(Math.sin(TAU * t * 4));
+  c.save(); c.translate(180, 178); c.rotate(-.12); c.scale(vs, vs);
+  c.beginPath(); for (let i = 0; i < 16; i++) { const r = i % 2 ? 30 : 48, a = i / 16 * TAU; c.lineTo(Math.cos(a) * r, Math.sin(a) * r); } c.closePath(); fs(c, '#ffd23f', 4);
+  c.fillStyle = INK; c.font = '34px Anton, Impact, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('VS', 0, 2); c.restore();
+  c.font = '26px Anton, Impact, sans-serif'; c.textBaseline = 'alphabetic'; c.textAlign = 'center'; c.lineJoin = 'round'; c.lineWidth = 6; c.strokeStyle = INK; c.fillStyle = '#fff';
+  [[N1() || 'Player 1', 92], [N2() || 'Player 2', 268]].forEach(([n, x]) => { n = n.toUpperCase(); c.strokeText(n, x, 292, 164); c.fillText(n, x, 292, 164); });
+}},
+{ id: 'dancebattle', pack: 'duo', name: 'Dance Battle', e: '🪩', frames: 32, defaultHat: 'afro', draw(c, t) {
+  const beat = Math.floor(t * 8), cols = ['#ff4f8b', '#ffd23f', '#2ec4b6', '#7b5cff', '#ff8a3d'];
+  c.fillStyle = '#1b1030'; c.fillRect(0, 0, W, W);
+  for (let i = 0; i < 6; i++) for (let j = 0; j < 2; j++) { c.globalAlpha = (i + j + beat) % 2 ? .95 : .45; c.fillStyle = cols[(i + j * 2 + beat) % 5]; c.fillRect(i * 60, 300 + j * 30, 60, 30); }
+  c.globalAlpha = 1;
+  for (const x of [105, 255]) { const sp = c.createRadialGradient(x, 0, 10, x, 140, 220); sp.addColorStop(0, 'rgba(255,255,255,.3)'); sp.addColorStop(1, 'rgba(255,255,255,0)'); c.fillStyle = sp; c.fillRect(0, 0, W, 300); }
+  const up = [Math.PI * .86, -.15], hip = [.75, -1.9], mix = (a, b, u) => a.map((v, i) => v + (b[i] - v) * u);
+  const oi = OUTFITS.findIndex(o => o.id === outfitSel), o2 = OUTFITS[(oi + 1) % OUTFITS.length].id;
+  [[105, face, slots[0].skin, outfitSel, .5 - .5 * Math.cos(TAU * t * 2)], [255, F2(), duo() ? slots[1].skin : slots[0].skin, o2, .5 + .5 * Math.cos(TAU * t * 2)]].forEach(([x, img, sk, of, k], n) => {
+    const m = k * 2 - 1;
+    drawCharacter(c, x + m * 8, 270, .6, { img, skin: sk, outfit: of, armR: mix(up, hip, k), armL: mix(hip, up, k),
+      legL: [.12 + .1 * k, -.15 * k], legR: [.12 + .1 * (1 - k), -.15 * (1 - k)], lean: m * .12, head: -m * .15, bob: -Math.abs(Math.sin(TAU * t * 4 + n)) * 6 });
+  });
+  return { top: 'Dance off' };
+}},
+{ id: 'slowdance', pack: 'duo', name: 'Slow Dance', e: '💞', frames: 40, draw(c, t) {
+  const g = c.createLinearGradient(0, 0, 0, W); g.addColorStop(0, '#2a1240'); g.addColorStop(1, '#5a1f5c'); c.fillStyle = g; c.fillRect(0, 0, W, W);
+  c.fillStyle = 'rgba(255,220,240,.14)'; c.beginPath(); c.moveTo(150, 0); c.lineTo(210, 0); c.lineTo(310, W); c.lineTo(50, W); c.closePath(); c.fill();
+  c.fillStyle = 'rgba(255,200,230,.22)'; c.beginPath(); c.ellipse(180, 338, 130, 18, 0, 0, TAU); c.fill();
+  for (let i = 0; i < 14; i++) { const a = Math.max(0, Math.sin(TAU * (t + rnd(i + 70)))); c.fillStyle = `rgba(255,255,255,${a * .8})`; c.beginPath(); c.arc(rnd(i + 71) * W, rnd(i + 72) * 200, 1.5 + a * 2, 0, TAU); c.fill(); }
+  floatHearts(c, t, 9, 40, 320, W, '#ff7ab0', .8);
+  const s = Math.sin(TAU * t), x0 = 180 + s * 10;
+  drawCharacter(c, x0 - 54, 272, .6, { img: face, skin: slots[0].skin, armR: [1.85, -.2], armL: [.25, -.2], legL: [.06, 0], legR: [.06, 0], lean: .06 + s * .07, head: .16 });
+  drawCharacter(c, x0 + 54, 272, .6, { img: F2(), skin: duo() ? slots[1].skin : slots[0].skin, armL: [1.85, -.2], armR: [.25, -.2], legL: [.06, 0], legR: [.06, 0], lean: -.06 + s * .07, head: -.16 });
+  return { bottom: 'Office party, 11:58 PM' };
+}},
+{ id: 'bullbear', pack: 'duo', name: 'Bull vs Bear', e: '📊', frames: 32, draw(c, t, f) {
+  c.save(); c.beginPath(); c.rect(0, 0, 180, W); c.clip(); bullBg(c, t, f); c.translate(90, 372); c.scale(.66, .66); c.translate(-180, -372); bullBody(c, t, f, face); c.restore();
+  c.save(); c.beginPath(); c.rect(180, 0, 180, W); c.clip(); bearBg(c, t, f); c.translate(270, 372); c.scale(.66, .66); c.translate(-180, -372); bearBody(c, t, f, F2()); c.restore();
+  c.fillStyle = INK; c.fillRect(177, 0, 6, W);
+  c.save(); c.translate(180, 168); c.beginPath(); c.arc(0, 0, 24, 0, TAU); fs(c, '#ffd23f', 4);
+  c.fillStyle = INK; c.font = '22px Anton, Impact, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('VS', 0, 1); c.restore();
+  c.font = '20px Anton, Impact, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'alphabetic'; c.lineJoin = 'round'; c.lineWidth = 5; c.strokeStyle = INK; c.fillStyle = '#fff';
+  [[N1(), 90], [N2(), 270]].forEach(([n, x]) => { if (!n) return; n = n.toUpperCase(); c.strokeText(n, x, 54, 160); c.fillText(n, x, 54, 160); });
+  return { bottom: 'Bull vs bear' };
 }},
 ];
 const popTints = [0, 1, 2, 3].map(() => { const x = document.createElement('canvas'); x.width = x.height = 400; return x; });
@@ -1272,12 +1368,12 @@ TEMPLATES.forEach(tp => {
   const b = document.createElement('button'); b.type = 'button'; b.className = 'bit';
   b.setAttribute('aria-pressed', tp === cur); b.innerHTML = `<span class="e">${tp.e}</span><span>${tp.name}</span>`;
   b.onclick = () => { cur = tp; start = performance.now(); document.querySelectorAll('.bit').forEach(x => x.setAttribute('aria-pressed', x === b)); };
-  ({ strategy: $('bits2'), body: $('bits3'), romance: $('bits4') }[tp.pack] || bitsEl).appendChild(b);
+  ({ strategy: $('bits2'), body: $('bits3'), romance: $('bits4'), duo: $('bits5') }[tp.pack] || bitsEl).appendChild(b);
 });
 
 function chips(el, list, get, set) {
   list.forEach(it => {
-    const b = document.createElement('button'); b.type = 'button'; b.className = 'chip';
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.dataset.id = it.id;
     b.innerHTML = `<span>${it.e}</span> ${it.name}`; b.setAttribute('aria-pressed', it.id === get());
     b.onclick = () => { set(it.id); el.querySelectorAll('.chip').forEach(x => x.setAttribute('aria-pressed', x === b)); };
     el.appendChild(b);
@@ -1384,7 +1480,7 @@ function useFace(f) {
   im.onload = () => {
     const c = document.createElement('canvas'); c.width = c.height = 600;
     c.getContext('2d').drawImage(im, 100, 100, 400, 400);
-    src = c; st.eye = f.eye; activeFace = f.id; resetView(); renderFaces();
+    src = c; slots[active].src = c; slots[active].has = true; slots[active].name = f.name || ''; $('fname').value = slots[active].name; st.eye = f.eye; activeFace = f.id; resetView(); renderFaces();
     $('saveNote').textContent = '';
   };
   im.src = f.img;
@@ -1393,7 +1489,7 @@ $('saveFace').onclick = async () => {
   const img = face.toDataURL('image/png');
   const dup = savedFaces.find(f => f.img === img);
   if (dup) { activeFace = dup.id; renderFaces(); $('saveNote').textContent = 'Already saved 👍'; return; }
-  const f = { id: Date.now(), img, eye: st.eye };
+  const f = { id: Date.now(), img, eye: st.eye, name: slots[active].name };
   try {
     await FaceDB.put(f); savedFaces.unshift(f); savedFaces = savedFaces.slice(0, 30); activeFace = f.id; renderFaces();
     $('saveNote').textContent = 'Saved! It lives in this browser on this device.';
@@ -1402,6 +1498,49 @@ $('saveFace').onclick = async () => {
 FaceDB.all().then(list => {
   savedFaces = (list || []).sort((a, b) => b.id - a.id); renderFaces(); $('saveFace').hidden = false;
 }).catch(() => { $('saveFace').hidden = true; });
+
+/* ---------- picker: collapsible packs + surprise ---------- */
+document.querySelectorAll('.packsec').forEach(sec => {
+  const head = sec.querySelector('.packhead'), n = sec.querySelectorAll('.bit').length;
+  head.insertAdjacentHTML('beforeend', ` <span class="cnt">${n}</span>`);
+  head.setAttribute('aria-expanded', sec.classList.contains('open'));
+  head.onclick = () => head.setAttribute('aria-expanded', sec.classList.toggle('open'));
+});
+function openPackOf(btn) {
+  const sec = btn.closest('.packsec');
+  if (sec && !sec.classList.contains('open')) { sec.classList.add('open'); sec.querySelector('.packhead').setAttribute('aria-expanded', true); }
+}
+$('surprise').onclick = () => {
+  const bits = [...document.querySelectorAll('.bit')]; let b;
+  do { b = bits[Math.floor(Math.random() * bits.length)]; } while (b.getAttribute('aria-pressed') === 'true');
+  const looks = [...HATS, ...HAIR].filter(h => h.id !== 'none' && h.id !== 'auto');
+  hatSel = Math.random() < .25 ? 'auto' : looks[Math.floor(Math.random() * looks.length)].id;
+  outfitSel = OUTFITS[Math.floor(Math.random() * OUTFITS.length)].id;
+  document.querySelectorAll('#hats .chip, #hair .chip').forEach(x => x.setAttribute('aria-pressed', x.dataset.id === hatSel));
+  document.querySelectorAll('#outfits .chip').forEach(x => x.setAttribute('aria-pressed', x.dataset.id === outfitSel));
+  b.click(); openPackOf(b); b.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+};
+
+/* ---------- friend slots + names ---------- */
+const nameIn = $('fname');
+function setActive(i) {
+  if (i === active) return;
+  slots[active].src = src; active = i; src = slots[i].src; st = slots[i].st;
+  fitBase(); syncSliders(); drawEditor();
+  nameIn.value = slots[i].name; detections = []; $('nextFace').hidden = true;
+  setDetect(i === 1 && !slots[1].has ? 'Add a second face for the 👥 Duo pack.' : '');
+  activeFace = null; renderFaces(); $('saveNote').textContent = '';
+  $('slot0').setAttribute('aria-pressed', i === 0); $('slot1').setAttribute('aria-pressed', i === 1);
+}
+$('slot0').onclick = () => setActive(0); $('slot1').onclick = () => setActive(1);
+nameIn.addEventListener('input', () => {
+  slots[active].name = nameIn.value;
+  const f = activeFace && savedFaces.find(x => x.id === activeFace);
+  if (f) { f.name = nameIn.value; FaceDB.put(f).catch(() => {}); }
+});
+// draw Friend 2's placeholder face once so Duo previews work before an upload
+active = 1; src = slots[1].src; st = slots[1].st; fitBase(); updateFace();
+active = 0; src = slots[0].src; st = slots[0].st; fitBase();
 
 /* ---------- captions + render ---------- */
 const topIn = $('top'), botIn = $('bottom');
@@ -1453,7 +1592,7 @@ speedIn.oninput = () => { $('speedv').textContent = (+speedIn.value) + '×'; };
 let start = performance.now(), lastKey = '';
 function loop(now) {
   const d = delayCs() * 10, f = Math.floor((now - start) / d) % cur.frames;
-  const key = cur.id + hatSel + outfitSel + skin + f + st.ox + st.oy + st.zoom + st.rot + st.eye + topIn.value + '|' + botIn.value + src.width;
+  const key = cur.id + hatSel + outfitSel + skin + active + slots[1].has + N1() + '|' + N2() + slots[0].st.eye + slots[1].st.eye + f + st.ox + st.oy + st.zoom + st.rot + st.eye + topIn.value + '|' + botIn.value + src.width;
   if (key !== lastKey) { lastKey = key; pctx.clearRect(0, 0, W, W); render(pctx, f / cur.frames, cur); }
   requestAnimationFrame(loop);
 }
