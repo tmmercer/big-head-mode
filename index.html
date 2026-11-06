@@ -89,6 +89,14 @@ input[type=range]{width:100%;accent-color:var(--pink);height:28px}
 .packsec:not(.open) .bits{display:none}
 .packsec .bits{margin:0 0 14px}
 .cnt{background:var(--ink);color:#fff;border-radius:99px;font-size:12px;padding:1px 8px;font-weight:800}
+.chatedit{border:2.5px dashed rgba(26,20,35,.35);border-radius:16px;padding:14px;margin:14px 0 4px;background:#fff8fc}
+.people{display:grid;gap:10px}
+.person{display:grid;grid-template-columns:48px 1fr auto;gap:10px;align-items:center}
+.pphoto{width:48px;height:48px;border-radius:50%;border:2.5px solid var(--ink);background:#eee center/cover no-repeat;display:grid;place-items:center;font-weight:800;color:#999}
+.pmeta .small{display:block;font-weight:700;margin-bottom:2px}
+.pmeta input{padding:7px 10px}
+.msgs{display:grid;gap:6px}
+.msgs input{padding:8px 11px}
 .col{display:grid;gap:22px;align-content:start}
 .label{font-weight:800;font-size:16px;margin:12px 0 8px}
 .label .small{font-weight:600;font-size:13px}
@@ -175,6 +183,17 @@ footer{text-align:center;margin-top:30px;font-size:14px;opacity:.7}
       <section class="packsec"><button type="button" class="packhead">👥 Duo <span class="small">· add Friend 2 in step 1</span></button><div class="bits" id="bits5" role="group" aria-label="Duo animations"></div></section>
       <section class="packsec"><button type="button" class="packhead">💼 Strategy Manager</button><div class="bits" id="bits2" role="group" aria-label="Strategy Manager animations"></div></section>
       <section class="packsec"><button type="button" class="packhead">💘 Office Romance</button><div class="bits" id="bits4" role="group" aria-label="Office Romance animations"></div></section>
+          <div class="chatedit" id="chatEdit" hidden>
+            <div class="label" style="margin-top:0">💬 The chat</div>
+            <div class="people">
+              <div class="person"><div class="pphoto" id="cePhoto1"></div><div class="pmeta"><span class="small">From</span><input id="ceName1" type="text" maxlength="24" placeholder="Their name" autocomplete="off"></div><button type="button" class="linkbtn" id="ceAdd1">Change photo</button></div>
+              <div class="person"><div class="pphoto" id="cePhoto2"></div><div class="pmeta"><span class="small">Chatting with</span><input id="ceName2" type="text" maxlength="24" placeholder="e.g. Priya" autocomplete="off"></div><button type="button" class="linkbtn" id="ceAdd2">+ Add photo</button></div>
+            </div>
+            <div class="label">Their messages <span class="small">· leave blank to use the defaults</span></div>
+            <div class="msgs" id="ceMsgs"></div>
+            <label class="field" for="ceReply">The reply</label><input id="ceReply" type="text" maxlength="80" autocomplete="off">
+            <button type="button" class="linkbtn" id="ceReset">↺ Back to the default lines</button>
+          </div>
           <div class="fields">
         <div><label class="field" for="top">Top text</label><input id="top" type="text" maxlength="60" placeholder="optional"></div>
         <div><label class="field" for="bottom">Bottom text</label><input id="bottom" type="text" maxlength="60" placeholder="optional"></div>
@@ -711,6 +730,21 @@ function bullBody(c, t, f, img = face) {
     c.beginPath(); c.moveTo(x, y - s * 2); c.quadraticCurveTo(x, y, x + s * 2, y); c.quadraticCurveTo(x, y, x, y + s * 2); c.quadraticCurveTo(x, y, x - s * 2, y); c.quadraticCurveTo(x, y, x, y - s * 2); c.fill(); }
   c.restore();
 }
+function wrapText(c, txt, maxW, maxLines) {
+  const words = String(txt).split(/\s+/).filter(Boolean), lines = []; let cur = '';
+  const push = w => { while (c.measureText(w).width > maxW && w.length > 1) { let k = w.length - 1; while (k > 1 && c.measureText(w.slice(0, k)).width > maxW) k--; lines.push(w.slice(0, k)); w = w.slice(k); } return w; };
+  for (let w of words) { const tryL = cur ? cur + ' ' + w : w; if (c.measureText(tryL).width <= maxW) { cur = tryL; continue; } if (cur) lines.push(cur); cur = push(w); }
+  if (cur) lines.push(cur);
+  if (lines.length > maxLines) { lines.length = maxLines; let l = lines[maxLines - 1]; while (l.length > 1 && c.measureText(l + '…').width > maxW) l = l.slice(0, -1); lines[maxLines - 1] = l + '…'; }
+  return lines.length ? lines : [''];
+}
+const CHAT_DEFAULT = ['hey :)', 'quick question', 'are you the mute button?', 'bc you leave me speechless'], CHAT_REPLY = 'is this about the Q3 deck??';
+let chat = { msgs: ['', '', '', ''], reply: '' };
+try { const sv = JSON.parse(localStorage.getItem('tgif-chat') || 'null'); if (sv && Array.isArray(sv.msgs)) chat = { msgs: [0, 1, 2, 3].map(i => String(sv.msgs[i] || '')), reply: String(sv.reply || '') }; } catch (e) {}
+function chatLines() {
+  const custom = chat.msgs.map(m => m.trim()).filter(Boolean);
+  return { msgs: custom.length ? custom : CHAT_DEFAULT, reply: chat.reply.trim() || CHAT_REPLY };
+}
 const TEMPLATES = [
 { id: 'bobble', name: 'Bobble­head', e: '🤪', frames: 30, draw(c, t) {
   const g = c.createLinearGradient(0, 0, 0, W); g.addColorStop(0, '#79d5ff'); g.addColorStop(1, '#dcf7ff');
@@ -1209,29 +1243,38 @@ const TEMPLATES = [
   c.save(); c.beginPath(); roundRect(c, 14, 10, 332, 214, 14); c.clip(); c.fillStyle = '#5b5fc7'; c.fillRect(14, 10, 332, 36); c.restore();
   faceCircle(c, 36, 28, 12, '#ffd1e6');
   c.fillStyle = '#18b26b'; c.beginPath(); c.arc(45, 37, 4.5, 0, TAU); c.fill(); c.strokeStyle = '#5b5fc7'; c.lineWidth = 2; c.stroke();
-  c.fillStyle = '#fff'; c.font = '800 14px "Bricolage Grotesque", sans-serif'; c.textAlign = 'left'; c.textBaseline = 'middle'; c.fillText(N1() || 'Your Crush', 56, 24, 200);
-  c.font = '600 11px "Bricolage Grotesque", sans-serif'; c.fillStyle = 'rgba(255,255,255,.8)'; c.fillText('Available · typing with intent', 56, 37);
-  const msgs = [['hey :)', 0, .04], ['quick question', 0, .16], ['are you a Teams update?', 0, .3], ["bc you just restarted my heart", 0, .46], ['is this about the Q3 deck??', 1, .7]];
-  let slot = 0;
-  for (const [txt, me, at] of msgs) {
-    const y = 52 + slot * 34;
-    if (t < at - .08) break;
-    if (t < at) { // typing dots
-      const x0 = me ? 300 : 52; c.fillStyle = me ? '#e3e4fa' : '#f0f0f5'; c.beginPath(); roundRect(c, x0 - (me ? 30 : 0), y, 46, 26, 13); c.fill();
-      for (let k = 0; k < 3; k++) { c.fillStyle = `rgba(90,90,110,${.35 + .5 * (.5 + .5 * Math.sin(TAU * (t * 12 - k * .2)))})`; c.beginPath(); c.arc(x0 - (me ? 30 : 0) + 13 + k * 10, y + 13, 3.5, 0, TAU); c.fill(); }
-      break;
+  c.fillStyle = '#fff'; c.font = '800 14px "Bricolage Grotesque", sans-serif'; c.textAlign = 'left'; c.textBaseline = 'middle'; c.fillText(N1() || 'Your Crush', 56, 24, 270);
+  c.font = '600 11px "Bricolage Grotesque", sans-serif'; c.fillStyle = 'rgba(255,255,255,.8)'; c.fillText(N2() ? 'Available · chatting with ' + N2() : 'Available · typing with intent', 56, 37, 270);
+  const { msgs, reply } = chatLines(), all = msgs.map(m => [m, 0]).concat(reply ? [[reply, 1]] : []);
+  const n = all.length, maxW = duo() ? 214 : 238;
+  c.font = '600 13px "Bricolage Grotesque", sans-serif';
+  const lay = all.map(([txt, me], k) => {
+    const lines = wrapText(c, txt, maxW - 22, 4);
+    return { lines, me, at: n === 1 ? .1 : .04 + k * (.66 / (n - 1)), w: Math.max(...lines.map(l => c.measureText(l).width)) + 22, h: 10 + lines.length * 16 };
+  });
+  const vis = [];
+  for (const it of lay) { if (t < it.at - .08) break; vis.push({ ...it, typing: t < it.at }); if (t < it.at) break; }
+  const gap = 8, top0 = 52, bottom = 218; let total = -gap; vis.forEach(v => total += (v.typing ? 26 : v.h) + gap);
+  let y = top0 - Math.max(0, total - (bottom - top0));
+  c.save(); c.beginPath(); c.rect(14, 46, 332, 176); c.clip();
+  for (const v of vis) {
+    const right = duo() ? 312 : 336;
+    if (v.typing) {
+      const x0 = v.me ? right - 46 : 52; c.fillStyle = v.me ? '#e3e4fa' : '#f0f0f5'; c.beginPath(); roundRect(c, x0, y, 46, 26, 13); c.fill();
+      for (let k = 0; k < 3; k++) { c.fillStyle = `rgba(90,90,110,${.35 + .5 * (.5 + .5 * Math.sin(TAU * (t * 12 - k * .2)))})`; c.beginPath(); c.arc(x0 + 13 + k * 10, y + 13, 3.5, 0, TAU); c.fill(); }
+    } else {
+      const bx = v.me ? right - v.w : 52, pop = Math.min(1, (t - v.at) / .03), ax = v.me ? bx + v.w : bx;
+      c.save(); c.translate(ax, y + 13); c.scale(pop, pop); c.translate(-ax, -(y + 13));
+      c.fillStyle = v.me ? '#5b5fc7' : '#f0f0f5'; c.beginPath(); roundRect(c, bx, y, v.w, v.h, 13); c.fill();
+      c.fillStyle = v.me ? '#fff' : INK; c.font = '600 13px "Bricolage Grotesque", sans-serif';
+      v.lines.forEach((l, li) => c.fillText(l, bx + 11, y + 13.5 + li * 16)); c.restore();
     }
-    c.font = '600 13px "Bricolage Grotesque", sans-serif';
-    const w = c.measureText(txt).width + 22, pop = Math.min(1, (t - at) / .03);
-    const bx = me ? (duo() ? 312 : 336) - w : 52;
-    c.save(); c.translate(me ? bx + w : bx, y + 13); c.scale(pop, pop); c.translate(-(me ? bx + w : bx), -(y + 13));
-    c.fillStyle = me ? '#5b5fc7' : '#f0f0f5'; c.beginPath(); roundRect(c, bx, y, w, 26, 13); c.fill();
-    c.fillStyle = me ? '#fff' : INK; c.fillText(txt, bx + 11, y + 13.5); c.restore();
-    if (!me) faceCircle(c, 34, y + 13, 11, '#ffd1e6'); else if (duo()) faceCircle(c, 326, y + 13, 11, '#e3e4fa', face2);
-    slot++;
+    if (!v.me) faceCircle(c, 34, y + 13, 11, '#ffd1e6'); else if (duo()) faceCircle(c, 326, y + 13, 11, '#e3e4fa', face2);
+    y += (v.typing ? 26 : v.h) + gap;
   }
+  c.restore();
   c.textBaseline = 'alphabetic';
-  const blush = t > .46 ? 1 : 0;
+  const lastSender = lay.filter(v => !v.me).pop(), blush = lastSender && t > lastSender.at ? 1 : 0;
   const bob = Math.sin(TAU * t * 2), hh = duo() ? 136 : 150;
   for (const [hx, im] of (duo() ? [[110, face], [250, face2]] : [[180, face]])) {
     drawFace(c, hx, 300 + bob * 4, hh, bob * .05, 1, 1, im);
@@ -1426,7 +1469,7 @@ const bitsEl = $('bits');
 TEMPLATES.forEach(tp => {
   const b = document.createElement('button'); b.type = 'button'; b.className = 'bit';
   b.setAttribute('aria-pressed', tp === cur); b.innerHTML = `<span class="e">${tp.e}</span><span>${tp.name}</span>`;
-  b.onclick = () => { cur = tp; start = performance.now(); document.querySelectorAll('.bit').forEach(x => x.setAttribute('aria-pressed', x === b)); };
+  b.onclick = () => { cur = tp; start = performance.now(); document.querySelectorAll('.bit').forEach(x => x.setAttribute('aria-pressed', x === b)); syncPanels(); };
   ({ strategy: $('bits2'), body: $('bits3'), romance: $('bits4'), duo: $('bits5') }[tp.pack] || bitsEl).appendChild(b);
 });
 
@@ -1704,7 +1747,7 @@ function showPage(p, push = true) {
   $('pageFace').hidden = p !== 'face'; $('pageMake').hidden = p !== 'make';
   document.querySelectorAll('.step').forEach(b => b.setAttribute('aria-current', b.dataset.go === p ? 'step' : 'false'));
   document.body.classList.toggle('on-make', p === 'make');
-  if (p === 'make') renderStars();
+  if (p === 'make') { renderStars(); syncPanels(); }
   if (push && location.hash !== '#' + p) location.hash = p;
   window.scrollTo(0, 0);
 }
@@ -1734,6 +1777,31 @@ $('surprise').onclick = () => {
   document.querySelectorAll('#outfits .chip').forEach(x => x.setAttribute('aria-pressed', x.dataset.id === outfitSel));
   b.click(); openPackOf(b); b.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 };
+
+/* ---------- Teams DM chat editor ---------- */
+const saveChat = () => { try { localStorage.setItem('tgif-chat', JSON.stringify(chat)); } catch (e) {} };
+CHAT_DEFAULT.forEach((d, i) => {
+  const inp = document.createElement('input'); inp.type = 'text'; inp.maxLength = 80; inp.autocomplete = 'off';
+  inp.placeholder = d; inp.value = chat.msgs[i]; inp.setAttribute('aria-label', `Message ${i + 1}`);
+  inp.addEventListener('input', () => { chat.msgs[i] = inp.value; saveChat(); chatHints(); });
+  $('ceMsgs').appendChild(inp);
+});
+function chatHints() { const custom = chat.msgs.some(m => m.trim()); $('ceMsgs').querySelectorAll('input').forEach((x, i) => x.placeholder = custom ? '(optional)' : CHAT_DEFAULT[i]); }
+chatHints();
+$('ceReply').placeholder = CHAT_REPLY; $('ceReply').value = chat.reply;
+$('ceReply').addEventListener('input', () => { chat.reply = $('ceReply').value; saveChat(); });
+$('ceReset').onclick = () => { chat = { msgs: ['', '', '', ''], reply: '' }; saveChat(); $('ceMsgs').querySelectorAll('input').forEach(x => x.value = ''); $('ceReply').value = ''; chatHints(); };
+[0, 1].forEach(i => {
+  $('ceName' + (i + 1)).addEventListener('input', e => { slots[i].name = e.target.value; if (active === i) $('fname').value = e.target.value; });
+  $('ceAdd' + (i + 1)).onclick = () => { setActive(i); showPage('face'); if (i === 1 && !slots[1].has) setDetect('Add a photo of the person they’re chatting with.'); };
+});
+function syncPanels() {
+  const show = cur.id === 'teamsdm'; $('chatEdit').hidden = !show; if (!show) return;
+  $('cePhoto1').style.backgroundImage = `url(${face.toDataURL('image/png')})`;
+  const p2 = $('cePhoto2'); p2.style.backgroundImage = duo() ? `url(${face2.toDataURL('image/png')})` : ''; p2.textContent = duo() ? '' : '?';
+  $('ceName1').value = slots[0].name; $('ceName2').value = slots[1].name;
+  $('ceAdd2').textContent = duo() ? 'Change photo' : '+ Add photo';
+}
 
 /* ---------- friend slots + names ---------- */
 const nameIn = $('fname');
@@ -1806,7 +1874,7 @@ speedIn.oninput = () => { $('speedv').textContent = (+speedIn.value) + '×'; };
 let start = performance.now(), lastKey = '';
 function loop(now) {
   const d = delayCs() * 10, f = Math.floor((now - start) / d) % cur.frames;
-  const key = cur.id + hatSel + outfitSel + skin + active + slots[1].has + N1() + '|' + N2() + slots[0].st.eye + slots[1].st.eye + f + st.ox + st.oy + st.zoom + st.rot + st.eye + topIn.value + '|' + botIn.value + src.width;
+  const key = cur.id + JSON.stringify(chat) + hatSel + outfitSel + skin + active + slots[1].has + N1() + '|' + N2() + slots[0].st.eye + slots[1].st.eye + f + st.ox + st.oy + st.zoom + st.rot + st.eye + topIn.value + '|' + botIn.value + src.width;
   if (key !== lastKey) { lastKey = key; pctx.clearRect(0, 0, W, W); render(pctx, f / cur.frames, cur); }
   requestAnimationFrame(loop);
 }
