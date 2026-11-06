@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Big Head Mode — Face GIF Maker</title>
+<title>T$ GIF Creator</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&display=swap" rel="stylesheet">
@@ -22,7 +22,30 @@ h1 .big{display:inline-block;background:var(--yellow);border:3px solid var(--ink
 @media (prefers-reduced-motion:reduce){h1 .big{animation:none}}
 .sub{font-size:18px;margin:16px 0 0;opacity:.8}
 .grid{display:grid;gap:22px}
-@media(min-width:880px){.grid{grid-template-columns:1fr 1.08fr;align-items:start}.preview-card{position:sticky;top:16px}}
+@media(min-width:880px){.grid{grid-template-columns:1fr 1.05fr;align-items:start}.stage{position:sticky;top:16px}}
+header{position:relative}
+.acct{position:absolute;top:-6px;right:0}
+.acct .btn{font-size:14px;padding:7px 12px;max-width:46vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block}
+@media(max-width:520px){header{padding-top:40px}}
+.steps{display:inline-flex;align-items:center;gap:8px;margin-top:16px;background:#fff;border:3px solid var(--ink);border-radius:99px;padding:5px;box-shadow:4px 4px 0 var(--ink)}
+.step{font:inherit;font-weight:800;font-size:14px;border:0;background:none;color:var(--ink);padding:7px 12px;border-radius:99px;cursor:pointer}
+.step[aria-current=step]{background:var(--yellow)}
+.facecard{max-width:560px;margin:0 auto}
+.next{margin-top:18px}
+.controls{display:grid;gap:22px;align-content:start}
+.starring{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:12px 0 2px}
+.stars{display:flex;gap:10px;align-items:center;min-width:0}
+.star{display:flex;align-items:center;gap:6px;font-weight:700;font-size:14px;min-width:0}
+.star img{width:38px;height:38px;border-radius:50%;border:2.5px solid var(--ink);background:var(--cream);object-fit:cover;flex:none}
+.star span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:110px}
+.linkbtn{background:none;border:0;font:inherit;font-weight:700;font-size:14px;text-decoration:underline;color:var(--ink);cursor:pointer;padding:4px 0}
+.makebar{margin-top:14px}
+@media(max-width:879px){body.on-make .makebar{position:fixed;left:14px;right:14px;bottom:14px;z-index:30;margin:0}body.on-make .wrap{padding-bottom:100px}}
+.modal{position:fixed;inset:0;background:rgba(26,20,35,.55);display:grid;place-items:center;padding:16px;z-index:60}
+.sheet{max-width:400px;width:100%;position:relative}
+.x{position:absolute;top:10px;right:12px;width:34px;height:34px;border-radius:50%;border:2.5px solid var(--ink);background:#fff;font:800 18px/1 'Bricolage Grotesque',sans-serif;cursor:pointer;color:var(--ink)}
+.amsg{font-weight:700;font-size:14px;margin:12px 0 0;min-height:1em}
+.amsg.bad{color:#c4002f}.amsg.good{color:#0a7d45}
 .card{background:var(--paper);border:3px solid var(--ink);border-radius:22px;box-shadow:6px 6px 0 var(--ink);padding:18px}
 .card h2{margin:0 0 14px;font-size:23px;font-weight:800;display:flex;align-items:center;gap:10px;letter-spacing:-.01em}
 .num{width:32px;height:32px;flex:none;border-radius:50%;background:var(--pink);color:#fff;display:grid;place-items:center;font-size:17px;border:2.5px solid var(--ink)}
@@ -51,6 +74,7 @@ input[type=range]{width:100%;accent-color:var(--pink);height:28px}
 .fthumb .pick{width:66px;height:66px;border-radius:50%;border:3px solid var(--ink);background:var(--cream);padding:0;overflow:hidden;cursor:pointer;display:block}
 .fthumb .pick img{width:100%;height:100%;object-fit:cover;display:block}
 .fthumb .pick[aria-pressed=true]{box-shadow:0 0 0 4px var(--yellow)}
+.fthumb .fname{font-size:11px;font-weight:700;text-align:center;max-width:66px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:3px}
 .fthumb .del{position:absolute;top:-6px;right:-6px;width:26px;height:26px;border-radius:50%;background:#fff;border:2px solid var(--ink);font:800 14px/1 'Bricolage Grotesque',sans-serif;color:var(--ink);cursor:pointer;display:grid;place-items:center;padding:0}
 .slots{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 12px}
 .slot{font:inherit;font-weight:800;font-size:15px;color:var(--ink);border:2.5px solid var(--ink);border-radius:12px;background:#fff;padding:9px 6px;cursor:pointer;-webkit-tap-highlight-color:transparent}
@@ -78,8 +102,8 @@ input[type=range]{width:100%;accent-color:var(--pink);height:28px}
 .fields{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 @media(max-width:480px){.fields{grid-template-columns:1fr}}
 label.field{display:block;font-weight:600;font-size:15px;margin:10px 0 4px}
-input[type=text]{width:100%;font:inherit;font-size:16px;padding:10px 12px;border:2.5px solid var(--ink);border-radius:12px;background:#fffdf6;color:var(--ink)}
-input[type=text]:focus{outline:3px solid var(--yellow);outline-offset:1px}
+input[type=text],input[type=email],input[type=password]{width:100%;font:inherit;font-size:16px;padding:10px 12px;border:2.5px solid var(--ink);border-radius:12px;background:#fffdf6;color:var(--ink)}
+input[type=text]:focus,input[type=email]:focus,input[type=password]:focus{outline:3px solid var(--yellow);outline-offset:1px}
 .make{margin-top:16px}
 .progress{height:16px;border:2.5px solid var(--ink);border-radius:99px;overflow:hidden;background:#fff;margin-top:14px;display:none}
 .progress>div{height:100%;width:0;background:repeating-linear-gradient(45deg,var(--pink) 0 10px,#ff7aa8 10px 20px)}
@@ -95,13 +119,14 @@ footer{text-align:center;margin-top:30px;font-size:14px;opacity:.7}
 <body>
 <div class="wrap">
   <header>
-    <h1><span class="big">Big Head</span> Mode</h1>
+    <div class="acct"><button class="btn ghost" id="acctBtn" type="button">🔐 Sign in</button></div>
+    <h1><span class="big">T$</span> GIF Creator</h1>
     <p class="sub">Put your friend's face in a ridiculous looping GIF.</p>
+    <nav class="steps" aria-label="Steps"><button type="button" class="step" data-go="face">1 · Pick the face</button><span aria-hidden="true">→</span><button type="button" class="step" data-go="make">2 · Make the GIF</button></nav>
   </header>
 
-  <div class="grid">
-    <div class="col">
-    <section class="card">
+  <div id="pageFace" class="page">
+    <section class="card facecard">
       <h2><span class="num">1</span> Grab their face</h2>
       <div class="slots"><button type="button" class="slot" id="slot0" aria-pressed="true">👤 Friend 1</button><button type="button" class="slot" id="slot1" aria-pressed="false">👥 Friend 2 <span class="small">optional</span></button></div>
       <label class="btn pink block" for="file">📸 Choose a photo</label>
@@ -121,44 +146,78 @@ footer{text-align:center;margin-top:30px;font-size:14px;opacity:.7}
       <div class="slider"><label for="eye">Eye line</label><input id="eye" type="range" min="0.2" max="0.7" step="0.01" value="0.42"></div>
       <div class="row"><button class="btn ghost" id="nextFace" type="button" hidden>👥 Next face</button><button class="btn ghost" id="reset" type="button">↺ Reset position</button><button class="btn ghost" id="saveFace" type="button" hidden>💾 Save this face</button></div>
       <p class="small" id="saveNote" style="text-align:center"></p>
+      <button class="btn pink block next" id="toMake" type="button">Next: make the GIF →</button>
     </section>
-    <section class="card">
-      <h2><span class="num">2</span> Dress them up</h2>
-      <div class="label">Hats <span class="small">· show in every animation · Auto gives the 🕺 Full Body pack its own look</span></div>
-      <div class="chips" id="hats"></div>
-      <div class="label">Hair &amp; headwear</div>
-      <div class="chips" id="hair"></div>
-      <div class="label">Outfit <span class="small">· for the 🕺 Full Body pack</span></div>
-      <div class="chips" id="outfits"></div>
-    </section>
-    </div>
+  </div>
 
-    <section class="card preview-card">
-      <h2><span class="num">3</span> Pick the bit</h2>
-      <canvas id="preview" width="360" height="360" aria-label="Live preview"></canvas>
-      <div class="pickbar"><span class="small">Tap a pack to open it</span><button class="btn ghost" id="surprise" type="button">🎲 Surprise me</button></div>
-      <section class="packsec open"><button type="button" class="packhead">😂 Classics</button><div class="bits" id="bits" role="group" aria-label="Classic animations"></div></section>
-      <section class="packsec"><button type="button" class="packhead">🕺 Full Body</button><div class="bits" id="bits3" role="group" aria-label="Full body animations"></div></section>
-      <section class="packsec"><button type="button" class="packhead">👥 Duo <span class="small">· add Friend 2 in step 1</span></button><div class="bits" id="bits5" role="group" aria-label="Duo animations"></div></section>
-      <section class="packsec"><button type="button" class="packhead">💼 Strategy Manager</button><div class="bits" id="bits2" role="group" aria-label="Strategy Manager animations"></div></section>
-      <section class="packsec"><button type="button" class="packhead">💘 Office Romance</button><div class="bits" id="bits4" role="group" aria-label="Office Romance animations"></div></section>
-      <div class="fields">
-        <div><label class="field" for="top">Top text</label><input id="top" type="text" maxlength="60" placeholder="optional"></div>
-        <div><label class="field" for="bottom">Bottom text</label><input id="bottom" type="text" maxlength="60" placeholder="optional"></div>
-      </div>
-      <div class="slider" style="margin-top:12px"><label for="speed">Speed <span id="speedv">1×</span></label><input id="speed" type="range" min="0.5" max="2" step="0.25" value="1"></div>
-      <button class="btn pink block make" id="make" type="button">✨ Make the GIF</button>
-      <div class="progress" id="prog"><div></div></div>
+  <div id="pageMake" class="page" hidden>
+    <div class="grid">
+      <div class="stage">
+        <section class="card preview-card">
+          <canvas id="preview" width="360" height="360" aria-label="Live preview"></canvas>
+          <div class="starring"><div class="stars" id="stars"></div><button type="button" class="linkbtn" id="toFace">✏️ Change face</button></div>
+          <div class="makebar"><button class="btn pink block make" id="make" type="button">✨ Make the GIF</button></div>
+          <div class="progress" id="prog"><div></div></div>
       <div id="result">
         <h3>Here it is 🎉</h3>
         <img id="out" alt="Your finished GIF">
         <div class="row"><button class="btn" id="save" type="button" hidden>⬇️ Save GIF</button><button class="btn" id="share" type="button" hidden>📤 Share</button></div>
         <p class="small" id="savehint"></p>
       </div>
-    </section>
+        </section>
+      </div>
+      <div class="controls">
+        <section class="card">
+          <h2><span class="num">2</span> Pick the bit</h2>
+          <div class="pickbar"><span class="small">Tap a pack to open it</span><button class="btn ghost" id="surprise" type="button">🎲 Surprise me</button></div>
+      <section class="packsec open"><button type="button" class="packhead">😂 Classics</button><div class="bits" id="bits" role="group" aria-label="Classic animations"></div></section>
+      <section class="packsec"><button type="button" class="packhead">🕺 Full Body</button><div class="bits" id="bits3" role="group" aria-label="Full body animations"></div></section>
+      <section class="packsec"><button type="button" class="packhead">👥 Duo <span class="small">· add Friend 2 in step 1</span></button><div class="bits" id="bits5" role="group" aria-label="Duo animations"></div></section>
+      <section class="packsec"><button type="button" class="packhead">💼 Strategy Manager</button><div class="bits" id="bits2" role="group" aria-label="Strategy Manager animations"></div></section>
+      <section class="packsec"><button type="button" class="packhead">💘 Office Romance</button><div class="bits" id="bits4" role="group" aria-label="Office Romance animations"></div></section>
+          <div class="fields">
+        <div><label class="field" for="top">Top text</label><input id="top" type="text" maxlength="60" placeholder="optional"></div>
+        <div><label class="field" for="bottom">Bottom text</label><input id="bottom" type="text" maxlength="60" placeholder="optional"></div>
+      </div>
+      <div class="slider" style="margin-top:12px"><label for="speed">Speed <span id="speedv">1×</span></label><input id="speed" type="range" min="0.5" max="2" step="0.25" value="1"></div>
+        </section>
+        <section class="card">
+          <h2><span class="num">3</span> Dress them up</h2>
+      <div class="label">Hats <span class="small">· show in every animation · Auto gives the 🕺 Full Body pack its own look</span></div>
+      <div class="chips" id="hats"></div>
+      <div class="label">Hair &amp; headwear</div>
+      <div class="chips" id="hair"></div>
+      <div class="label">Outfit <span class="small">· for the 🕺 Full Body pack</span></div>
+      <div class="chips" id="outfits"></div>
+        </section>
+      </div>
+    </div>
   </div>
 
-  <footer>Everything runs in your browser — the photo never leaves your device.<br>Best used on friends who are in on the joke 😄</footer>
+  <footer>Photos stay on your device. If you sign in, only the cropped faces you save are stored in your account.<br>Best used on friends who are in on the joke 😄</footer>
+</div>
+
+<div class="modal" id="authModal" hidden role="dialog" aria-modal="true" aria-labelledby="authTitle">
+  <div class="card sheet">
+    <button type="button" class="x" id="authClose" aria-label="Close">×</button>
+    <h2 id="authTitle">Sign in</h2>
+    <p class="small" id="authSub">Sign in to keep your saved faces on all your devices.</p>
+    <form id="authForm">
+      <label class="field" for="aEmail">Email</label><input id="aEmail" type="email" autocomplete="email" required>
+      <label class="field" for="aPass">Password</label><input id="aPass" type="password" autocomplete="current-password" minlength="6" required>
+      <div class="row" style="justify-content:flex-start"><button class="btn pink" type="submit" id="aSignIn">Sign in</button><button class="btn" type="button" id="aSignUp">Create account</button></div>
+      <button type="button" class="linkbtn" id="aForgot">Forgot password?</button>
+    </form>
+    <form id="newPassForm" hidden>
+      <label class="field" for="aNewPass">New password</label><input id="aNewPass" type="password" autocomplete="new-password" minlength="6" required>
+      <div class="row" style="justify-content:flex-start"><button class="btn pink" type="submit">Save new password</button></div>
+    </form>
+    <div id="authIn" hidden>
+      <p>Signed in as <b id="aWho"></b>. Faces you save are kept in your account.</p>
+      <div class="row" style="justify-content:flex-start"><button class="btn" type="button" id="aSignOut">Sign out</button></div>
+    </div>
+    <p class="amsg" id="aMsg" aria-live="polite"></p>
+  </div>
 </div>
 
 <script>
@@ -1458,21 +1517,100 @@ const FaceDB = (() => {
   return { all: () => run('readonly', s => s.getAll()), put: f => run('readwrite', s => s.put(f)), del: id => run('readwrite', s => s.delete(id)) };
 })();
 let savedFaces = [], activeFace = null;
+
+/* ---------- account: Supabase email + password (plain REST, no library) ---------- */
+const SB_URL = 'https://otoypxqbgtqyhgzryfpu.supabase.co', SB_KEY = 'sb_publishable_pCAZYtA_a_gXjwNhLSarXQ_-IQmDJyI';
+const inClaude = window.top !== window;
+const Auth = (() => {
+  let sess = null;
+  try { sess = JSON.parse(localStorage.getItem('tgif-session') || 'null'); } catch (e) {}
+  const keep = v => { sess = v; try { v ? localStorage.setItem('tgif-session', JSON.stringify(v)) : localStorage.removeItem('tgif-session'); } catch (e) {} };
+  const back = () => encodeURIComponent(location.origin + location.pathname);
+  const call = async (path, body, token, method = 'POST') => {
+    const r = await fetch(SB_URL + path, { method, headers: { apikey: SB_KEY, 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) }, body: method === 'GET' ? undefined : JSON.stringify(body || {}) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.msg || j.error_description || j.message || j.error || 'Something went wrong — try again.');
+    return j;
+  };
+  const toSess = (j, email) => ({ access_token: j.access_token, refresh_token: j.refresh_token, expires_at: j.expires_at || Math.floor(Date.now() / 1000) + (+j.expires_in || 3600), email: (j.user && j.user.email) || email });
+  return {
+    get email() { return sess && sess.email; },
+    async signIn(email, password) { keep(toSess(await call('/auth/v1/token?grant_type=password', { email, password }), email)); },
+    async signUp(email, password) { const j = await call(`/auth/v1/signup?redirect_to=${back()}`, { email, password }); if (j.access_token) { keep(toSess(j, email)); return 'in'; } return 'confirm'; },
+    async recover(email) { await call(`/auth/v1/recover?redirect_to=${back()}`, { email }); },
+    async setPassword(password) { await call('/auth/v1/user', { password }, await this.token(), 'PUT'); },
+    signOut() { const t = sess && sess.access_token; keep(null); if (t) call('/auth/v1/logout', {}, t).catch(() => {}); },
+    async token() {
+      if (!sess) return null;
+      if (sess.expires_at - 60 < Date.now() / 1000) {
+        try { keep(toSess(await call('/auth/v1/token?grant_type=refresh_token', { refresh_token: sess.refresh_token }), sess.email)); }
+        catch (e) { keep(null); updateAcct(); throw new Error('Your sign-in expired — please sign in again.'); }
+      }
+      return sess.access_token;
+    },
+    // links in confirmation / reset emails come back with tokens in the URL hash
+    async fromRedirect() {
+      const h = new URLSearchParams(location.hash.slice(1));
+      if (!h.get('access_token')) return h.get('error_description') ? { error: h.get('error_description') } : null;
+      const j = { access_token: h.get('access_token'), refresh_token: h.get('refresh_token'), expires_in: h.get('expires_in'), expires_at: +h.get('expires_at') || 0 };
+      let email = ''; try { email = (await call('/auth/v1/user', null, j.access_token, 'GET')).email; } catch (e) {}
+      keep(toSess(j, email));
+      return { type: h.get('type') };
+    },
+  };
+})();
+async function cloud(method, query, body) {
+  const tok = await Auth.token(); if (!tok) throw new Error('Not signed in');
+  const r = await fetch(`${SB_URL}/rest/v1/tgif_faces${query || ''}`, { method, headers: { apikey: SB_KEY, Authorization: 'Bearer ' + tok, 'Content-Type': 'application/json', Prefer: 'return=representation' }, body: body ? JSON.stringify(body) : undefined });
+  const j = await r.json().catch(() => null);
+  if (!r.ok) throw new Error((j && (j.message || j.msg)) || "Couldn't reach your account — try again.");
+  return j;
+}
+// one place that knows whether faces live on this device or in the signed-in account
+const Store = {
+  get cloud() { return !!Auth.email; },
+  async list() {
+    if (this.cloud) return (await cloud('GET', '?select=id,name,eye,img&order=created_at.desc&limit=60')).map(r => ({ ...r, cloud: true }));
+    return ((await FaceDB.all()) || []).sort((a, b) => b.id - a.id);
+  },
+  async add(f) {
+    if (this.cloud) { const [r] = await cloud('POST', '', { name: f.name || '', eye: f.eye, img: f.img }); return { ...r, cloud: true }; }
+    await FaceDB.put(f); return f;
+  },
+  del(f) { return f.cloud ? cloud('DELETE', `?id=eq.${f.id}`) : FaceDB.del(f.id); },
+  rename(f) { return f.cloud ? cloud('PATCH', `?id=eq.${f.id}`, { name: f.name || '' }) : FaceDB.put(f); },
+};
+async function copyLocalFacesToAccount() {
+  let local = []; try { local = (await FaceDB.all()) || []; } catch (e) { return 0; }
+  const todo = local.filter(f => !f.synced); if (!todo.length) return 0;
+  let have = []; try { have = (await Store.list()).map(f => f.img); } catch (e) { return 0; }
+  let n = 0;
+  for (const f of todo) {
+    try { if (!have.includes(f.img)) { await Store.add(f); n++; } f.synced = true; await FaceDB.put(f); } catch (e) {}
+  }
+  return n;
+}
+async function loadFaces() {
+  try { savedFaces = await Store.list(); } catch (e) { savedFaces = []; $('saveNote').textContent = e.message; }
+  renderFaces();
+}
 function renderFaces() {
   const box = $('faces'); box.innerHTML = '';
   $('savedWrap').hidden = !savedFaces.length;
   savedFaces.forEach(f => {
     const w = document.createElement('div'); w.className = 'fthumb';
-    const b = document.createElement('button'); b.type = 'button'; b.className = 'pick'; b.setAttribute('aria-label', 'Use saved face');
-    b.setAttribute('aria-pressed', f.id === activeFace); b.innerHTML = `<img alt="" src="${f.img}">`;
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'pick'; b.setAttribute('aria-label', 'Use saved face' + (f.name ? ': ' + f.name : ''));
+    b.setAttribute('aria-pressed', f.id === activeFace); b.innerHTML = '<img alt="">'; b.firstChild.src = f.img;
     b.onclick = () => useFace(f);
     const d = document.createElement('button'); d.type = 'button'; d.className = 'del'; d.textContent = '×'; d.setAttribute('aria-label', 'Delete saved face');
     d.onclick = async () => {
       if (d.dataset.armed !== '1') { d.dataset.armed = '1'; d.textContent = '?'; d.style.background = '#ff4f8b'; d.style.color = '#fff'; setTimeout(() => { if (d.isConnected) { d.dataset.armed = ''; d.textContent = '×'; d.style.background = ''; d.style.color = ''; } }, 2500); return; }
-      try { await FaceDB.del(f.id); } catch (e) {}
+      try { await Store.del(f); } catch (e) { $('saveNote').textContent = e.message; return; }
       savedFaces = savedFaces.filter(x => x.id !== f.id); if (activeFace === f.id) activeFace = null; renderFaces();
     };
-    w.append(b, d); box.appendChild(w);
+    w.append(b, d);
+    if (f.name) { const n = document.createElement('div'); n.className = 'fname'; n.textContent = f.name; w.appendChild(n); }
+    box.appendChild(w);
   });
 }
 function useFace(f) {
@@ -1481,23 +1619,99 @@ function useFace(f) {
     const c = document.createElement('canvas'); c.width = c.height = 600;
     c.getContext('2d').drawImage(im, 100, 100, 400, 400);
     src = c; slots[active].src = c; slots[active].has = true; slots[active].name = f.name || ''; $('fname').value = slots[active].name; st.eye = f.eye; activeFace = f.id; resetView(); renderFaces();
-    $('saveNote').textContent = '';
+    $('saveNote').textContent = ''; setDetect('');
+    showPage('make');
   };
   im.src = f.img;
 }
 $('saveFace').onclick = async () => {
-  const img = face.toDataURL('image/png');
+  const img = slots[active].face.toDataURL('image/png');
   const dup = savedFaces.find(f => f.img === img);
   if (dup) { activeFace = dup.id; renderFaces(); $('saveNote').textContent = 'Already saved 👍'; return; }
-  const f = { id: Date.now(), img, eye: st.eye, name: slots[active].name };
   try {
-    await FaceDB.put(f); savedFaces.unshift(f); savedFaces = savedFaces.slice(0, 30); activeFace = f.id; renderFaces();
-    $('saveNote').textContent = 'Saved! It lives in this browser on this device.';
-  } catch (e) { $('saveNote').textContent = "Couldn't save here — your browser may be blocking storage."; }
+    const f = await Store.add({ id: Date.now(), img, eye: st.eye, name: slots[active].name, synced: Store.cloud });
+    savedFaces.unshift(f); savedFaces = savedFaces.slice(0, 60); activeFace = f.id; renderFaces();
+    $('saveNote').textContent = Store.cloud ? "Saved to your account — it'll be on all your devices." : (inClaude ? 'Saved in this browser.' : 'Saved in this browser. Sign in to keep faces on all your devices.');
+  } catch (e) { $('saveNote').textContent = Store.cloud ? e.message : "Couldn't save here — your browser may be blocking storage."; }
 };
-FaceDB.all().then(list => {
-  savedFaces = (list || []).sort((a, b) => b.id - a.id); renderFaces(); $('saveFace').hidden = false;
-}).catch(() => { $('saveFace').hidden = true; });
+FaceDB.all().then(() => { $('saveFace').hidden = false; }).catch(() => { $('saveFace').hidden = !Store.cloud; });
+
+/* ---------- sign-in UI ---------- */
+const amsg = (m, good) => { const el = $('aMsg'); el.textContent = m || ''; el.className = 'amsg ' + (good ? 'good' : 'bad'); };
+function updateAcct() {
+  const e = Auth.email;
+  $('acctBtn').textContent = e ? '👤 ' + e.split('@')[0] : '🔐 Sign in';
+  $('authForm').hidden = !!e; $('authIn').hidden = !e; $('aWho').textContent = e || '';
+  $('authTitle').textContent = e ? 'Your account' : 'Sign in';
+  $('authSub').textContent = e ? '' : (inClaude ? "Sign-in works on the T$ GIF Creator website — it's blocked inside this Claude preview." : 'Sign in to keep your saved faces on all your devices.');
+}
+function openAuth(mode) {
+  $('authModal').hidden = false; $('newPassForm').hidden = mode !== 'newpass';
+  if (mode === 'newpass') { $('authForm').hidden = true; $('authIn').hidden = true; $('authTitle').textContent = 'Choose a new password'; $('authSub').textContent = ''; }
+  setTimeout(() => { const el = mode === 'newpass' ? $('aNewPass') : (Auth.email ? $('aSignOut') : $('aEmail')); el && el.focus(); }, 30);
+}
+const closeAuth = () => { $('authModal').hidden = true; amsg(''); };
+$('acctBtn').onclick = () => { updateAcct(); amsg(''); openAuth(); };
+$('authClose').onclick = closeAuth;
+$('authModal').addEventListener('click', e => { if (e.target === $('authModal')) closeAuth(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('authModal').hidden) closeAuth(); });
+async function afterSignIn() {
+  updateAcct(); amsg('Signed in! Syncing your faces…', true);
+  const n = await copyLocalFacesToAccount(); await loadFaces();
+  amsg(n ? `Signed in — copied ${n} saved face${n > 1 ? 's' : ''} from this device to your account.` : 'Signed in!', true);
+  setTimeout(closeAuth, 1400);
+}
+const busy = (on) => ['aSignIn', 'aSignUp'].forEach(id => $(id).disabled = on);
+$('authForm').addEventListener('submit', async e => {
+  e.preventDefault(); busy(true); amsg('');
+  try { await Auth.signIn($('aEmail').value.trim(), $('aPass').value); $('aPass').value = ''; await afterSignIn(); }
+  catch (err) { amsg(/fetch/i.test(err.message) ? "Couldn't reach the sign-in server." : err.message); }
+  busy(false);
+});
+$('aSignUp').onclick = async () => {
+  const email = $('aEmail').value.trim(), pw = $('aPass').value;
+  if (!email || pw.length < 6) { amsg('Enter your email and a password of at least 6 characters.'); return; }
+  busy(true); amsg('');
+  try {
+    const r = await Auth.signUp(email, pw); $('aPass').value = '';
+    if (r === 'in') await afterSignIn(); else amsg('Almost there — check your email for a confirmation link, then sign in.', true);
+  } catch (err) { amsg(/fetch/i.test(err.message) ? "Couldn't reach the sign-in server." : err.message); }
+  busy(false);
+};
+$('aForgot').onclick = async () => {
+  const email = $('aEmail').value.trim(); if (!email) { amsg('Type your email above first.'); return; }
+  try { await Auth.recover(email); amsg('Check your email for a link to reset your password.', true); } catch (err) { amsg(err.message); }
+};
+$('newPassForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  try { await Auth.setPassword($('aNewPass').value); $('aNewPass').value = ''; $('newPassForm').hidden = true; amsg('Password updated — you are signed in.', true); updateAcct(); $('authForm').hidden = true; $('authIn').hidden = false; }
+  catch (err) { amsg(err.message); }
+});
+$('aSignOut').onclick = async () => { Auth.signOut(); activeFace = null; updateAcct(); await loadFaces(); amsg('Signed out. Faces saved on this device are still here.', true); };
+
+/* ---------- pages ---------- */
+function renderStars() {
+  const box = $('stars'); box.innerHTML = '';
+  slots.forEach((sl, i) => {
+    if (i && !sl.has) return;
+    const d = document.createElement('div'); d.className = 'star';
+    const im = document.createElement('img'); im.alt = ''; im.src = sl.face.toDataURL('image/png');
+    const n = document.createElement('span'); n.textContent = sl.name.trim() || (i ? 'Friend 2' : 'Friend 1');
+    d.append(im, n); box.appendChild(d);
+  });
+}
+function showPage(p, push = true) {
+  $('pageFace').hidden = p !== 'face'; $('pageMake').hidden = p !== 'make';
+  document.querySelectorAll('.step').forEach(b => b.setAttribute('aria-current', b.dataset.go === p ? 'step' : 'false'));
+  document.body.classList.toggle('on-make', p === 'make');
+  if (p === 'make') renderStars();
+  if (push && location.hash !== '#' + p) location.hash = p;
+  window.scrollTo(0, 0);
+}
+document.querySelectorAll('.step').forEach(b => b.onclick = () => showPage(b.dataset.go));
+$('toMake').onclick = () => showPage('make');
+$('toFace').onclick = () => showPage('face');
+window.addEventListener('hashchange', () => { if (!/access_token|error/.test(location.hash)) showPage(location.hash === '#make' ? 'make' : 'face', false); });
 
 /* ---------- picker: collapsible packs + surprise ---------- */
 document.querySelectorAll('.packsec').forEach(sec => {
@@ -1536,7 +1750,7 @@ $('slot0').onclick = () => setActive(0); $('slot1').onclick = () => setActive(1)
 nameIn.addEventListener('input', () => {
   slots[active].name = nameIn.value;
   const f = activeFace && savedFaces.find(x => x.id === activeFace);
-  if (f) { f.name = nameIn.value; FaceDB.put(f).catch(() => {}); }
+  if (f) { f.name = nameIn.value; Store.rename(f).catch(() => {}); renderFaces(); }
 });
 // draw Friend 2's placeholder face once so Duo previews work before an upload
 active = 1; src = slots[1].src; st = slots[1].st; fitBase(); updateFace();
@@ -1722,7 +1936,7 @@ if (standalone) {
       const sb = $('share'); sb.hidden = false;
       sb.onclick = async () => {
         if (!lastBlob) return;
-        try { await navigator.share({ files: [new File([lastBlob], `big-head-${cur.id}.gif`, { type: 'image/gif' })] }); } catch (e) {}
+        try { await navigator.share({ files: [new File([lastBlob], `t-gif-${cur.id}.gif`, { type: 'image/gif' })] }); } catch (e) {}
       };
     }
   } catch (e) {}
@@ -1735,7 +1949,7 @@ if (standalone) {
 $('save').onclick = async () => {
   if (!downloads || !lastBlob) return;
   try {
-    await downloads.save({ filename: `big-head-${cur.id}.gif`, data: lastBlob });
+    await downloads.save({ filename: `t-gif-${cur.id}.gif`, data: lastBlob });
     $('savehint').textContent = 'Saved! Now go drop it in the group chat.';
   } catch (e) {
     const code = e && e.code;
@@ -1748,6 +1962,17 @@ $('save').onclick = async () => {
 /* ---------- boot ---------- */
 const fontsReady = (document.fonts ? Promise.all([document.fonts.load('48px Anton'), document.fonts.load('600 24px "Bricolage Grotesque"')]) : Promise.resolve()).catch(() => {});
 refresh();
+(async () => {
+  const red = await Auth.fromRedirect().catch(() => null);
+  if (red) { try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { location.hash = ''; } }
+  showPage(location.hash === '#make' ? 'make' : 'face', false);
+  updateAcct();
+  if (red && red.error) { openAuth(); amsg(red.error); }
+  else if (red && red.type === 'recovery') { openAuth('newpass'); }
+  else if (red) { openAuth(); await afterSignIn(); }
+  if (Auth.email) { await copyLocalFacesToAccount(); }
+  await loadFaces();
+})();
 fontsReady.then(() => { drawEditor(); lastKey = ''; });
 requestAnimationFrame(loop);
 })();
