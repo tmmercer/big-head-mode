@@ -535,6 +535,13 @@ const OUTFITS = [
         c.fillStyle = '#ff8a3d'; c.beginPath(); c.arc(x, y, 2.5, 0, TAU); c.fill(); }
       c.restore();
       for (let i = 0; i < 11; i++) { const a = Math.PI * .1 + i / 10 * Math.PI * .8; c.beginPath(); c.arc(Math.cos(a) * 34, -96 + Math.sin(a) * 26, 7, 0, TAU); fs(c, ['#ff4f8b', '#ffd23f', '#ff8a3d', '#fff'][i % 4], 2); } } },
+  { id: 'grocer', name: 'Grocery apron', e: '🛒', upper: '#c62828', lower: 'skin', thigh: '#c8b48a', shin: '#c8b48a', shoe: '#1d1d24',
+    torso(c) { c.beginPath(); roundRect(c, -40, -96, 80, 102, 18); fs(c, '#c62828', 4);
+      c.beginPath(); c.moveTo(-14, -96); c.lineTo(0, -82); c.lineTo(14, -96); c.closePath(); c.fillStyle = '#8e1b1b'; c.fill();
+      c.strokeStyle = '#1b5e20'; c.lineWidth = 6; line(c, -22, -92, -26, -66); line(c, 22, -92, 26, -66);
+      c.beginPath(); c.moveTo(-28, -68); c.lineTo(28, -68); c.lineTo(32, 8); c.lineTo(-32, 8); c.closePath(); fs(c, '#2e7d32', 3.5);
+      c.beginPath(); c.rect(-18, -30, 36, 20); fs(c, '#27692a', 2.5);
+      c.beginPath(); roundRect(c, 4, -62, 22, 13, 3); fs(c, '#fff', 2); c.fillStyle = '#c62828'; c.font = '800 8px "Bricolage Grotesque", sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('T$', 15, -55); c.textBaseline = 'alphabetic'; } },
   { id: 'chicken', name: 'Chicken', e: '🐔', upper: '#ffd84d', lower: '#ffd84d', thigh: '#ff9a1f', shin: '#ff9a1f', shoe: '#ff9a1f', thin: true,
     torso(c) { for (const d of [-1, 1]) { c.beginPath(); c.ellipse(d * 30, 4, 14, 26, d * .9, 0, TAU); fs(c, '#fff3b0', 3); }
       c.beginPath(); c.ellipse(0, -44, 52, 64, 0, 0, TAU); fs(c, '#ffd84d', 4);
@@ -809,6 +816,50 @@ function drawSceneCharacter(c, t, ch, ph) {
   c.fillStyle = 'rgba(0,0,0,.28)'; c.beginPath(); c.ellipse(ch.x + (P.dx || 0) * k, ch.y + 4 * k, Math.max(10, (46 - (P.jump ? lift * .6 : 0)) * k), 9 * k, 0, 0, TAU); c.fill();
   drawCharacter(c, ch.x + (P.dx || 0) * k, ch.y - 106 * sc, sc, { ...P, bob: (P.bob || 0) * k, img, skin: sk, outfit: ch.outfit || outfitSel });
 }
+/* ---------- milk: jugs + dairy aisle ---------- */
+const CAPS = ['#d32f2f', '#1e63c6', '#7b3fbf', '#4fb3ff', '#f2b705'];
+function drawJug(c, x, y, s, rot, cap) {
+  c.save(); c.translate(x, y); c.rotate(rot); c.scale(s, s);
+  const g = c.createLinearGradient(-24, 0, 24, 0); g.addColorStop(0, '#dcdcd6'); g.addColorStop(.35, '#ffffff'); g.addColorStop(1, '#c9c9c2');
+  c.beginPath(); c.moveTo(-22, -16); c.quadraticCurveTo(-22, -28, -10, -32); c.lineTo(-6, -40); c.lineTo(6, -40); c.lineTo(10, -32); c.quadraticCurveTo(24, -28, 24, -16);
+  c.lineTo(24, 30); c.quadraticCurveTo(24, 36, 18, 36); c.lineTo(-16, 36); c.quadraticCurveTo(-22, 36, -22, 30); c.closePath();
+  c.fillStyle = g; c.fill(); c.lineWidth = 2.2; c.strokeStyle = 'rgba(60,60,70,.55)'; c.stroke();
+  c.beginPath(); roundRect(c, 6, -30, 12, 18, 5); c.fillStyle = 'rgba(120,120,130,.35)'; c.fill();
+  c.fillStyle = cap; c.beginPath(); roundRect(c, -8, -48, 16, 10, 3); c.fill();
+  c.fillRect(-22, 2, 46, 16); c.fillStyle = '#fff'; c.font = '800 9px "Bricolage Grotesque", sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('MILK', 1, 10.5);
+  c.fillStyle = 'rgba(255,255,255,.7)'; c.fillRect(-17, -12, 4, 40);
+  c.restore(); c.textBaseline = 'alphabetic';
+}
+let aisleCache = null;
+function drawAisle(c) {
+  if (!aisleCache) {
+    const a = document.createElement('canvas'); a.width = a.height = W; const g = a.getContext('2d');
+    g.fillStyle = '#e9e4da'; g.fillRect(0, 0, W, W);
+    g.fillStyle = '#f4f4f4'; g.fillRect(0, 0, W, 16); g.fillStyle = 'rgba(255,255,240,.9)'; for (let x = 20; x < W; x += 120) g.fillRect(x, 4, 80, 6);
+    g.fillStyle = '#1b5e20'; g.fillRect(0, 18, W, 24); g.fillStyle = '#fff'; g.font = '800 15px "Bricolage Grotesque", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('D A I R Y   ·   A I S L E   5', W / 2, 31);
+    g.fillStyle = '#2d3540'; g.fillRect(0, 42, W, 214);
+    for (let d = 0; d < 4; d++) {
+      const x0 = 6 + d * 88.5, w = 82;
+      g.fillStyle = '#cfe8f5'; g.fillRect(x0, 48, w, 202);
+      for (let r = 0; r < 3; r++) {
+        const sy = 48 + (r + 1) * 66; g.fillStyle = '#9aa6b2'; g.fillRect(x0, sy - 4, w, 5);
+        g.fillStyle = '#fff59d'; g.fillRect(x0 + 6, sy - 3, 16, 7); g.fillStyle = '#333'; g.font = '700 5px sans-serif'; g.fillText('$3.49', x0 + 14, sy + .5);
+        for (let j = 0; j < 4; j++) drawJug(g, x0 + 12 + j * 19.5, sy - 22, .42, 0, CAPS[(d * 3 + r + j) % CAPS.length]);
+      }
+      const rg = g.createLinearGradient(x0, 48, x0 + w, 250); rg.addColorStop(0, 'rgba(255,255,255,.35)'); rg.addColorStop(.35, 'rgba(255,255,255,0)'); rg.addColorStop(.6, 'rgba(255,255,255,0)'); rg.addColorStop(.7, 'rgba(255,255,255,.22)'); rg.addColorStop(.8, 'rgba(255,255,255,0)');
+      g.fillStyle = rg; g.fillRect(x0, 48, w, 202);
+      g.strokeStyle = '#3c4652'; g.lineWidth = 4; g.strokeRect(x0, 48, w, 202);
+      g.fillStyle = '#b8c2cc'; g.fillRect(x0 + (d % 2 ? 6 : w - 10), 110, 4, 70);
+    }
+    g.fillStyle = '#bfc5c9'; g.fillRect(0, 256, W, 104);
+    g.strokeStyle = 'rgba(255,255,255,.55)'; g.lineWidth = 1.5;
+    for (let y = 256; y < W; y += 22) { g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke(); }
+    for (let k = -8; k <= 8; k++) { g.beginPath(); g.moveTo(W / 2 + k * 30, 256); g.lineTo(W / 2 + k * 90, W); g.stroke(); }
+    const fl = g.createLinearGradient(0, 256, 0, W); fl.addColorStop(0, 'rgba(255,255,255,.35)'); fl.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = fl; g.fillRect(0, 256, W, 104);
+    aisleCache = a;
+  }
+  c.drawImage(aisleCache, 0, 0);
+}
 const CHAT_DEFAULT = ['hey :)', 'quick question', 'are you the mute button?', 'bc you leave me speechless'], CHAT_REPLY = 'is this about the Q3 deck??';
 let chat = { msgs: ['', '', '', ''], reply: '' };
 try { const sv = JSON.parse(localStorage.getItem('tgif-chat') || 'null'); if (sv && Array.isArray(sv.msgs)) chat = { msgs: [0, 1, 2, 3].map(i => String(sv.msgs[i] || '')), reply: String(sv.reply || '') }; } catch (e) {}
@@ -1074,6 +1125,29 @@ const TEMPLATES = [
     c.save(); c.setLineDash([6, 5]); c.lineWidth = 3; c.strokeStyle = '#ffd23f'; c.beginPath(); c.ellipse(sel.x, sel.y + 4 * sel.s / .82, 58 * sel.s / .82, 13 * sel.s / .82, 0, 0, TAU); c.stroke(); c.restore();
   }
   [...scene.chars].sort((a, b) => a.y - b.y).forEach(ch => drawSceneCharacter(c, t, ch, 0));
+}},
+{ id: 'milk', pack: 'body', name: 'Milk Slinger', e: '🥛', frames: 36, defaultHat: 'cap', draw(c, t, f) {
+  drawAisle(c);
+  c.fillStyle = '#c62828'; c.strokeStyle = INK; c.lineWidth = 3; c.beginPath(); c.rect(30, 300, 74, 44); c.fill(); c.stroke();
+  for (let j = 0; j < 3; j++) drawJug(c, 44 + j * 23, 290, .5, 0, CAPS[j]);
+  c.strokeStyle = '#8e1b1b'; c.lineWidth = 3; for (let k = 1; k < 4; k++) line(c, 30 + k * 18.5, 312, 30 + k * 18.5, 344);
+  const X = 168, HIP = 268, S = .76, N = 3, u = (t * N) % 1, a = u * TAU;
+  c.fillStyle = 'rgba(0,0,0,.25)'; c.beginPath(); c.ellipse(X, HIP + 86, 60, 10, 0, 0, TAU); c.fill();
+  drawCharacter(c, X, HIP, S, { outfit: 'grocer', armR: [a, 0], armL: [.75, -1.9], legL: [.22, -.05], legR: [.16, 0],
+    lean: -Math.sin(a) * .06, head: -.05 - Math.sin(a) * .06, bob: -Math.max(0, -Math.cos(a)) * 5 });
+  if (u < .5) { const hx = X + S * (35 + 84 * Math.sin(a)), hy = HIP + S * (-82 + 84 * Math.cos(a)); drawJug(c, hx + 8, hy - 6, .72, a * .5, CAPS[Math.floor(t * N) % CAPS.length]); }
+  const path = (q, sx, sy) => [(1 - q) * (1 - q) * sx + 2 * (1 - q) * q * 290 + q * q * 330, (1 - q) * (1 - q) * sy + 2 * (1 - q) * q * 40 + q * q * 470];
+  for (let k = 0; k < N; k++) {
+    const q = (((t * N - k - .5) % N) + N) % N; if (q >= 1) continue;
+    const sx = X + S * 35, sy = HIP + S * (-82 - 84), [px, py] = path(q, sx, sy), sc = .75 + q * q * 3.2, rot = q * TAU * 1.3, cap = CAPS[k % CAPS.length];
+    c.fillStyle = 'rgba(255,255,255,.9)';
+    for (let d = 1; d <= 5; d++) { const [dx, dy] = path(Math.max(0, q - d * .05), sx, sy);
+      c.globalAlpha = .55 - d * .09; c.beginPath(); c.arc(dx + (rnd(k * 9 + d) - .5) * 14, dy + 10 + (rnd(k * 7 + d) - .5) * 14, 2 + sc * 1.2, 0, TAU); c.fill(); }
+    c.globalAlpha = .25; drawJug(c, px - 10 * sc, py - 8 * sc, sc, rot - .35, cap);
+    c.globalAlpha = 1; drawJug(c, px, py, sc, rot, cap);
+  }
+  if (u > .4 && u < .62) { c.strokeStyle = 'rgba(26,20,35,.4)'; c.lineWidth = 3; c.lineCap = 'round'; for (let k = 0; k < 3; k++) { const yy = 72 + k * 14; line(c, X + 40 + k * 8, yy, X + 76 + k * 8, yy - 10); } }
+  return { top: 'Aisle 5 MVP' };
 }},
 { id: 'dance', pack: 'body', defaultHat: 'afro', name: 'Dance Floor', e: '🕺', frames: 32, draw(c, t) {
   const beat = Math.floor(t * 8), cols = ['#ff4f8b', '#ffd23f', '#2ec4b6', '#7b5cff', '#ff8a3d'];
@@ -2236,7 +2310,7 @@ refresh();
   if (Auth.email) { await copyLocalFacesToAccount(); }
   await loadFaces();
 })();
-fontsReady.then(() => { drawEditor(); lastKey = ''; });
+fontsReady.then(() => { aisleCache = null; drawEditor(); lastKey = ''; });
 requestAnimationFrame(loop);
 })();
 </script>
