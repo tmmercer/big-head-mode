@@ -1122,6 +1122,53 @@ const TEMPLATES = [
   c.globalAlpha = 1;
   return { bottom: 'Vibe check' };
 }},
+{ id: 'wish', name: '11:11 Wish', e: '🌠', frames: 48, draw(c, t, f) {
+  const g = c.createLinearGradient(0, 0, 0, W); g.addColorStop(0, '#0b0a2e'); g.addColorStop(.6, '#2a1b5e'); g.addColorStop(1, '#5a2d7a'); c.fillStyle = g; c.fillRect(0, 0, W, W);
+  for (let i = 0; i < 46; i++) { const a = .25 + .75 * (.5 + .5 * Math.sin(TAU * (t * 2 + rnd(i + 80)))); c.fillStyle = `rgba(255,255,240,${a})`; c.beginPath(); c.arc(rnd(i + 81) * W, rnd(i + 82) * W * .8, .8 + rnd(i + 83) * 1.6, 0, TAU); c.fill(); }
+  c.fillStyle = '#fff6c8'; c.beginPath(); c.arc(318, 52, 20, 0, TAU); c.fill(); c.fillStyle = '#1a1446'; c.beginPath(); c.arc(328, 46, 18, 0, TAU); c.fill();
+  // shooting star
+  if (t > .5 && t < .78) { const u = (t - .5) / .28, x = -30 + u * 420, y = 20 + u * 120, tail = c.createLinearGradient(x - 90, y - 26, x, y);
+    tail.addColorStop(0, 'rgba(255,255,255,0)'); tail.addColorStop(1, 'rgba(255,255,255,.95)'); c.strokeStyle = tail; c.lineWidth = 3; c.lineCap = 'round'; line(c, x - 90, y - 26, x, y);
+    c.fillStyle = '#fff'; c.beginPath(); c.arc(x, y, 3.5, 0, TAU); c.fill(); }
+  // 7-segment clock: 11:10 flips to 11:11
+  const on = t >= .16, digits = on ? '1111' : '1110', SEG = { '0': 'abcdef', '1': 'bc' };
+  const seg7 = (x, y, w, h, d) => {
+    const th = w * .2, S = { a: [x + th, y, w - 2 * th, th], b: [x + w - th, y + th, th, h / 2 - th * 1.5], c: [x + w - th, y + h / 2 + th * .5, th, h / 2 - th * 1.5], d: [x + th, y + h - th, w - 2 * th, th], e: [x, y + h / 2 + th * .5, th, h / 2 - th * 1.5], f: [x, y + th, th, h / 2 - th * 1.5], g: [x + th, y + h / 2 - th / 2, w - 2 * th, th] };
+    for (const k of 'abcdefg') { const [sx, sy, sw, sh] = S[k]; c.fillStyle = SEG[d].includes(k) ? '#ff7ad9' : 'rgba(255,122,217,.08)'; c.beginPath(); roundRect(c, sx, sy, sw, sh, th / 2); c.fill(); }
+  };
+  c.save(); c.shadowColor = '#ff7ad9'; c.shadowBlur = on ? 18 + 8 * Math.sin(TAU * t * 4) : 10;
+  c.fillStyle = 'rgba(20,10,40,.55)'; c.beginPath(); roundRect(c, 58, 22, 244, 92, 16); c.fill();
+  [[76, 0], [124, 1], [196, 2], [244, 3]].forEach(([x, i]) => seg7(x, 34, 40, 68, digits[i]));
+  if (Math.floor(t * 8) % 2 === 0) { c.fillStyle = '#ff7ad9'; c.beginPath(); c.arc(180, 54, 5, 0, TAU); c.arc(180, 82, 5, 0, TAU); c.fill(); }
+  c.restore();
+  c.fillStyle = 'rgba(255,240,255,.92)'; c.font = 'italic 700 17px "Bricolage Grotesque", sans-serif'; c.textAlign = 'center'; c.fillText('make a wish ✨', 180, 140);
+  // flip burst
+  if (t >= .16 && t < .4) { const u = (t - .16) / .24; c.strokeStyle = `rgba(255,214,250,${1 - u})`; c.lineWidth = 4; c.beginPath(); c.arc(180, 68, 40 + u * 170, 0, TAU); c.stroke(); }
+  // dandelion wishes drifting up
+  for (let i = 0; i < 9; i++) {
+    const fr = (rnd(i + 90) + t) % 1, x = (rnd(i + 91) * W + fr * 60 + Math.sin(TAU * (fr * 2 + rnd(i))) * 12) % (W + 20) - 10, y = W + 10 - fr * (W + 30), a = Math.min(1, fr * 6, (1 - fr) * 6);
+    c.save(); c.globalAlpha = a * .9; c.translate(x, y); c.rotate(Math.sin(TAU * (fr + rnd(i + 92))) * .4);
+    c.strokeStyle = '#fff'; c.lineWidth = 1.2; line(c, 0, 0, 0, 10);
+    for (let k = 0; k < 9; k++) { const ang = -Math.PI / 2 + (k - 4) * .3; line(c, 0, 0, Math.cos(ang) * 8, Math.sin(ang) * 8); }
+    c.restore();
+  }
+  c.globalAlpha = 1;
+  // face with a dreamy glow, hands clasped under the chin
+  const bob = Math.sin(TAU * t * 2) * 3, fy = 224 + bob, h = 172;
+  const glow = c.createRadialGradient(180, fy, 30, 180, fy, 150); glow.addColorStop(0, `rgba(255,190,240,${on ? .55 : .25})`); glow.addColorStop(1, 'rgba(255,190,240,0)'); c.fillStyle = glow; c.fillRect(0, 100, W, W);
+  drawFace(c, 180, fy, h, Math.sin(TAU * t) * .05);
+  const hy = fy + h * .5 - 2; // prayer hands tucked under the chin, pajama sleeves leading off-frame
+  c.lineCap = 'round';
+  for (const d of [-1, 1]) { c.strokeStyle = INK; c.lineWidth = 31; line(c, 180 + d * 12, hy + 26, 180 + d * 78, W + 20); c.strokeStyle = '#8e6cff'; c.lineWidth = 24; line(c, 180 + d * 12, hy + 26, 180 + d * 78, W + 20); }
+  for (const d of [-1, 1]) { c.save(); c.translate(180 + d * 8, hy); c.rotate(-d * .1); c.beginPath(); c.moveTo(0, -30); c.quadraticCurveTo(d * 16, -24, d * 15, 4); c.quadraticCurveTo(d * 14, 26, 0, 30); c.closePath(); fs(c, slots[0].skin, 3); c.restore(); }
+  c.strokeStyle = 'rgba(26,20,35,.55)'; c.lineWidth = 2; line(c, 180, hy - 28, 180, hy + 28);
+  // twinkles around the face once it's 11:11
+  if (on) for (let i = 0; i < 7; i++) {
+    const a = i / 7 * TAU + t * TAU, r = 108 + 10 * Math.sin(TAU * t * 3 + i), s = 4 + 3 * Math.max(0, Math.sin(TAU * (t * 3 + i / 7)));
+    const x = 180 + Math.cos(a) * r, y = fy + Math.sin(a) * r * .75; c.fillStyle = '#fff3b0';
+    c.beginPath(); c.moveTo(x, y - s * 2); c.quadraticCurveTo(x, y, x + s * 2, y); c.quadraticCurveTo(x, y, x, y + s * 2); c.quadraticCurveTo(x, y, x - s * 2, y); c.quadraticCurveTo(x, y, x, y - s * 2); c.fill();
+  }
+}},
 /* ----- Full Body pack ----- */
 { id: 'scene', pack: 'body', name: 'Your Scene', e: '🖼️', frames: 32, draw(c, t) {
   drawSceneBg(c);
