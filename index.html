@@ -557,6 +557,12 @@ const OUTFITS = [
     torso(c) { c.beginPath(); roundRect(c, -38, -96, 76, 100, 20); fs(c, '#ff8a1f', 4); c.fillStyle = '#1f4fa3'; c.fillRect(-36, -60, 72, 6);
       c.beginPath(); c.moveTo(-12, -96); c.lineTo(0, -82); c.lineTo(12, -96); c.closePath(); c.fillStyle = '#1f4fa3'; c.fill();
       c.fillStyle = '#fff'; c.strokeStyle = '#1f4fa3'; c.lineWidth = 3; c.font = '30px Anton, Impact, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.strokeText('87', 0, -24); c.fillText('87', 0, -24); c.textBaseline = 'alphabetic'; } },
+  { id: 'traveler', name: 'Traveler cloak', e: '🧳', cape: true, capeColor: '#5b2a86', upper: '#c9a36a', lower: '#c9a36a', thigh: '#4b3a2a', shin: '#3a2a1c', shoe: '#2a1d12',
+    torso(c) { c.beginPath(); roundRect(c, -38, -96, 76, 104, 16); fs(c, '#c9a36a', 4);
+      c.beginPath(); c.moveTo(-38, -90); c.lineTo(-14, -96); c.lineTo(-30, -40); c.closePath(); c.fillStyle = '#5b2a86'; c.fill(); c.beginPath(); c.moveTo(38, -90); c.lineTo(14, -96); c.lineTo(30, -40); c.closePath(); c.fill();
+      c.fillStyle = '#ffd23f'; c.beginPath(); c.arc(0, -90, 5, 0, TAU); c.fill();
+      c.strokeStyle = '#6b4423'; c.lineWidth = 6; line(c, -30, -88, 26, -20);
+      c.fillStyle = '#6b4423'; c.fillRect(-38, -16, 76, 9); c.fillStyle = '#d9b44a'; c.fillRect(-6, -17, 12, 11); } },
   { id: 'grocer', name: 'Grocery apron', e: '🛒', upper: '#c62828', lower: 'skin', thigh: '#c8b48a', shin: '#c8b48a', shoe: '#1d1d24',
     torso(c) { c.beginPath(); roundRect(c, -40, -96, 80, 102, 18); fs(c, '#c62828', 4);
       c.beginPath(); c.moveTo(-14, -96); c.lineTo(0, -82); c.lineTo(14, -96); c.closePath(); c.fillStyle = '#8e1b1b'; c.fill();
@@ -586,7 +592,7 @@ function drawCharacter(c, x, y, s, P) {
   if (o.cape) {
     const fl = (P.cape || 0) * 12;
     c.beginPath(); c.moveTo(-32, -90); c.lineTo(32, -90); c.quadraticCurveTo(54, -20, 60 + fl, 52); c.quadraticCurveTo(30, 62 + fl, 0, 50);
-    c.quadraticCurveTo(-30, 62 - fl, -60 + fl, 52); c.quadraticCurveTo(-54, -20, -32, -90); fs(c, '#e63946', 4);
+    c.quadraticCurveTo(-30, 62 - fl, -60 + fl, 52); c.quadraticCurveTo(-54, -20, -32, -90); fs(c, o.capeColor || '#e63946', 4);
   }
   const lw = o.thin ? 12 : 22;
   for (const side of [-1, 1]) {
@@ -1208,6 +1214,48 @@ const TEMPLATES = [
     c.strokeStyle = INK; c.lineWidth = 2.5; c.beginPath(); c.arc(h.x, h.y, 7, -Math.PI * .1, Math.PI * 1.4); c.stroke();
     c.fillStyle = INK; c.beginPath(); c.moveTo(h.x + 7.5, h.y - 6); c.lineTo(h.x + 11, h.y + 1); c.lineTo(h.x + 3, h.y + 0); c.closePath(); c.fill();
   }
+}},
+{ id: 'ocarina', pack: 'body', name: 'Ocarina Glade', e: '🎶', frames: 40, draw(c, t) {
+  // moonlit forest glade
+  const sky = c.createLinearGradient(0, 0, 0, W); sky.addColorStop(0, '#0d1b3d'); sky.addColorStop(.6, '#1f4a5e'); sky.addColorStop(1, '#2d5b4a'); c.fillStyle = sky; c.fillRect(0, 0, W, W);
+  for (let i = 0; i < 30; i++) { const a = .3 + .7 * (.5 + .5 * Math.sin(TAU * (t + rnd(i + 140)))); c.fillStyle = `rgba(255,255,235,${a * .8})`; c.beginPath(); c.arc(rnd(i + 141) * W, rnd(i + 142) * 150, .7 + rnd(i + 143) * 1.3, 0, TAU); c.fill(); }
+  const mg = c.createRadialGradient(270, 70, 10, 270, 70, 90); mg.addColorStop(0, 'rgba(240,248,255,.55)'); mg.addColorStop(1, 'rgba(240,248,255,0)'); c.fillStyle = mg; c.beginPath(); c.arc(270, 70, 90, 0, TAU); c.fill();
+  c.fillStyle = '#eef6ff'; c.beginPath(); c.arc(270, 70, 30, 0, TAU); c.fill();
+  const tree = (x, base, w, h, col) => { c.fillStyle = col; for (let k = 0; k < 3; k++) { const yy = base - h + k * h * .28; c.beginPath(); c.moveTo(x, yy); c.lineTo(x + w * (.55 + k * .2), yy + h * .45); c.lineTo(x - w * (.55 + k * .2), yy + h * .45); c.closePath(); c.fill(); } c.fillRect(x - 4, base - h * .2, 8, h * .2); };
+  [[20, 250, 46, 170], [92, 238, 34, 120], [330, 252, 50, 180], [262, 236, 32, 110], [-10, 262, 40, 120]].forEach(([x, b, w, h]) => tree(x, b, w, h, '#14302c'));
+  [[60, 268, 40, 140], [300, 270, 42, 150]].forEach(([x, b, w, h]) => tree(x, b, w, h, '#0e2420'));
+  c.fillStyle = '#2f6b45'; c.beginPath(); c.ellipse(180, 330, 260, 80, 0, Math.PI, TAU); c.fill(); c.fillRect(0, 300, W, 60);
+  c.strokeStyle = '#4f9a5e'; c.lineWidth = 2; c.lineCap = 'round';
+  for (let i = 0; i < 40; i++) { const x = rnd(i + 150) * W, y = 300 + rnd(i + 151) * 56, sw = Math.sin(TAU * (t + rnd(i + 152))) * 2; line(c, x, y, x + sw, y - 7 - rnd(i + 153) * 6); }
+  [[44, 300, 16, 28], [318, 304, 14, 24]].forEach(([x, y, w, h]) => { c.fillStyle = '#5d6970'; c.beginPath(); roundRect(c, x - w / 2, y - h, w, h, 6); c.fill(); c.fillStyle = '#4f9a5e'; c.fillRect(x - w / 2, y - h, w, 5); });
+  // the musician
+  const sway = Math.sin(TAU * t), S = .74, X = 180, HIP = 336 - 106 * S;
+  c.fillStyle = 'rgba(0,0,0,.3)'; c.beginPath(); c.ellipse(X, 338, 56, 9, 0, 0, TAU); c.fill();
+  const play = [2.962, 2.312];
+  drawCharacter(c, X, HIP, S, { outfit: 'traveler', armL: play, armR: play, legL: [.1, 0], legR: [.1, 0], lean: sway * .04, head: sway * .05, cape: Math.sin(TAU * t * 2) * .6, armsFront: true });
+  // clay ocarina at the lips
+  const ox = X + Math.sin(sway * .04) * -110 * S, oy = HIP - 104 * S;
+  c.save(); c.translate(ox, oy); c.rotate(-.15 + sway * .04);
+  c.beginPath(); c.ellipse(0, 0, 21, 12, 0, 0, TAU); const og = c.createLinearGradient(0, -12, 0, 12); og.addColorStop(0, '#d9895b'); og.addColorStop(1, '#a4562f'); c.fillStyle = og; c.fill(); c.strokeStyle = INK; c.lineWidth = 2.2; c.stroke();
+  c.beginPath(); roundRect(c, -27, -4, 9, 7, 3); c.fillStyle = '#b8653a'; c.fill(); c.stroke();
+  c.fillStyle = '#3a2416'; [[-6, -3], [2, -4], [10, -2], [4, 4]].forEach(([x, y]) => { c.beginPath(); c.arc(x, y, 1.8, 0, TAU); c.fill(); });
+  c.restore();
+  // glowing notes drifting out of the ocarina
+  const cols = ['#9ff3ff', '#ffd6f6', '#fff3a0', '#b9ffcf'];
+  for (let i = 0; i < 8; i++) {
+    const fr = (rnd(i + 160) + t * (1 + i % 2)) % 1, a = Math.min(1, fr * 5, (1 - fr) * 3);
+    const nx = ox + 20 + fr * (110 + rnd(i + 161) * 60) * (i % 3 === 0 ? -1.4 : 1), ny = oy - 10 - fr * 170 + Math.sin(TAU * (fr * 2 + rnd(i + 162))) * 14;
+    c.save(); c.globalAlpha = a; c.translate(nx, ny); c.rotate(Math.sin(TAU * (fr + rnd(i))) * .3); c.shadowColor = cols[i % 4]; c.shadowBlur = 10;
+    c.fillStyle = cols[i % 4]; c.strokeStyle = cols[i % 4]; c.lineWidth = 2.5;
+    c.beginPath(); c.ellipse(0, 0, 6, 4.5, -.4, 0, TAU); c.fill(); line(c, 5, -1, 5, -18);
+    if (i % 2) { c.beginPath(); c.ellipse(12, -3, 6, 4.5, -.4, 0, TAU); c.fill(); line(c, 17, -4, 17, -21); line(c, 5, -18, 17, -21); }
+    else { c.beginPath(); c.moveTo(5, -18); c.quadraticCurveTo(13, -12, 10, -6); c.stroke(); }
+    c.restore();
+  }
+  // fireflies
+  for (let i = 0; i < 14; i++) { const fr = (rnd(i + 170) + t) % 1, x = rnd(i + 171) * W + Math.sin(TAU * (fr + rnd(i + 172))) * 18, y = 150 + rnd(i + 173) * 170 + Math.cos(TAU * (fr * 2 + rnd(i))) * 10, b = .5 + .5 * Math.sin(TAU * (t * 3 + rnd(i + 174)));
+    const fg = c.createRadialGradient(x, y, 0, x, y, 9); fg.addColorStop(0, `rgba(235,255,150,${b})`); fg.addColorStop(1, 'rgba(235,255,150,0)'); c.fillStyle = fg; c.beginPath(); c.arc(x, y, 9, 0, TAU); c.fill(); }
+  return { bottom: 'Side quest: vibes' };
 }},
 { id: 'milk', pack: 'body', name: 'Milk Slinger', e: '🥛', frames: 36, defaultHat: 'cap', draw(c, t, f) {
   drawAisle(c);
