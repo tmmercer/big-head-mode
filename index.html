@@ -1202,6 +1202,42 @@ const TEMPLATES = [
     c.beginPath(); c.moveTo(x, y - s * 2); c.quadraticCurveTo(x, y, x + s * 2, y); c.quadraticCurveTo(x, y, x, y + s * 2); c.quadraticCurveTo(x, y, x - s * 2, y); c.quadraticCurveTo(x, y, x, y - s * 2); c.fill();
   }
 }},
+{ id: 'snacks', name: 'Snack Break', e: '🧁', frames: 32, defaultHat: 'chef', draw(c, t, f) {
+  for (let i = 0; i < 12; i++) { c.fillStyle = i % 2 ? '#ffe3ef' : '#fff6fa'; c.fillRect(i * 30, 0, 30, 270); }
+  c.textBaseline = 'alphabetic';
+  // treats
+  const cupcake = (x, y, s) => { c.save(); c.translate(x, y); c.scale(s, s);
+    c.beginPath(); c.moveTo(-18, -4); c.lineTo(18, -4); c.lineTo(13, 20); c.lineTo(-13, 20); c.closePath(); fs(c, '#7ec8e3', 2.5);
+    c.strokeStyle = 'rgba(255,255,255,.7)'; c.lineWidth = 2; for (let k = -12; k <= 12; k += 6) line(c, k, -2, k * .75, 18);
+    for (const [dx, dy, r] of [[-10, -8, 10], [10, -8, 10], [0, -14, 12], [0, -24, 8]]) { c.beginPath(); c.arc(dx, dy, r, 0, TAU); fs(c, '#ffb3d1', 2.5); }
+    c.beginPath(); c.arc(0, -34, 5, 0, TAU); fs(c, '#e63946', 2); c.restore(); };
+  const roll = (x, y, s) => { c.save(); c.translate(x, y); c.scale(s, s); c.beginPath(); c.arc(0, 0, 20, 0, TAU); fs(c, '#6b3f1d', 2.5);
+    c.strokeStyle = '#fff5e6'; c.lineWidth = 4; c.beginPath(); for (let a = 0; a < TAU * 2.4; a += .2) { const r = 2 + a * 1.1; c.lineTo(Math.cos(a) * r, Math.sin(a) * r); } c.stroke(); c.restore(); };
+  const brownie = (x, y, s) => { c.save(); c.translate(x, y); c.scale(s, s); c.beginPath(); roundRect(c, -20, -14, 40, 28, 4); fs(c, '#5a3420', 2.5);
+    c.beginPath(); roundRect(c, -20, -14, 40, 9, 4); c.fillStyle = '#3a2214'; c.fill();
+    ['#ff4f8b', '#ffd23f', '#2ec4b6', '#fff', '#7b5cff'].forEach((col, k) => { c.fillStyle = col; c.save(); c.translate(-14 + k * 7, -10 + (k % 2) * 2); c.rotate(k); c.fillRect(-3, -1, 6, 2); c.restore(); }); c.restore(); };
+  const cookie = (x, y, s) => { c.save(); c.translate(x, y); c.scale(s, s);
+    c.beginPath(); c.ellipse(0, 6, 22, 8, 0, 0, TAU); fs(c, '#c98b4a', 2.5); c.beginPath(); c.ellipse(0, 1, 21, 6, 0, 0, TAU); c.fillStyle = '#fffaf0'; c.fill();
+    c.beginPath(); c.ellipse(0, -4, 22, 8, 0, 0, TAU); fs(c, '#c98b4a', 2.5); c.fillStyle = '#9c6532'; for (const [dx, dy] of [[-8, -5], [4, -3], [10, -6], [-2, -7]]) { c.beginPath(); c.arc(dx, dy, 1.6, 0, TAU); c.fill(); } c.restore(); };
+  const donut = (x, y, s) => { c.save(); c.translate(x, y); c.scale(s, s); c.beginPath(); c.arc(0, 0, 20, 0, TAU); c.arc(0, 0, 7, 0, TAU, true); c.fillStyle = '#e8b46b'; c.fill('evenodd'); c.lineWidth = 2.5; c.strokeStyle = INK; c.stroke();
+    c.beginPath(); c.arc(0, -1, 17, 0, TAU); c.arc(0, -1, 8, 0, TAU, true); c.fillStyle = '#6b3f1d'; c.fill('evenodd'); c.restore(); };
+  const TREATS = [cupcake, roll, brownie, cookie, donut];
+  // falling sprinkles + mini treats
+  for (let i = 0; i < 6; i++) { const fr = (rnd(i + 300) + t) % 1, x = 20 + rnd(i + 301) * 320, y = -30 + fr * 330; c.save(); c.globalAlpha = .9; c.translate(x, y); c.rotate(fr * TAU * (i % 2 ? 1 : -1)); TREATS[i % 5](0, 0, .55); c.restore(); }
+  // the taste tester
+  const bob = Math.sin(TAU * t * 2) * 4, chew = Math.abs(Math.sin(TAU * t * 4));
+  drawFace(c, 180, 184 + bob, 150, Math.sin(TAU * t) * .06, 1 + chew * .02, 1 - chew * .02);
+  // crumbs
+  c.fillStyle = '#b07a3e'; for (let i = 0; i < 8; i++) { const fr = (rnd(i + 310) + t * 2) % 1, a = rnd(i + 311) * Math.PI; c.globalAlpha = 1 - fr; c.beginPath(); c.arc(180 + Math.cos(a) * (20 + fr * 70), 226 + bob + fr * 30 - Math.sin(a) * 10, 2.5, 0, TAU); c.fill(); }
+  c.globalAlpha = 1;
+  // conveyor belt
+  c.fillStyle = '#d9d9e3'; c.fillRect(0, 262, W, 98);
+  c.beginPath(); roundRect(c, -10, 292, 380, 26, 13); fs(c, '#3b3b46', 3);
+  c.strokeStyle = '#55556a'; c.lineWidth = 3; const so = (t * 450) % 30; for (let x = -30 + so; x < W + 30; x += 30) line(c, x, 296, x - 8, 314);
+  for (let x = 10; x < W; x += 58) { c.save(); c.translate(x, 330); c.rotate(t * TAU * 4); c.beginPath(); c.arc(0, 0, 10, 0, TAU); fs(c, '#8a8a9a', 2.5); line(c, -8, 0, 8, 0); c.restore(); }
+  for (let i = 0; i < 5; i++) { const x = ((i * 90 + t * 450) % 450) - 45; TREATS[i](x, 278, 1); }
+  return { top: 'Snack break!' };
+}},
 /* ----- Days of the Week pack ----- */
 { id: 'mon', pack: 'days', dow: 1, name: 'Marvelous Monday', e: '☕', frames: 32, draw(c, t) {
   const g = c.createLinearGradient(0, 0, 0, W); g.addColorStop(0, '#ffd08a'); g.addColorStop(1, '#ff8fb1'); c.fillStyle = g; c.fillRect(0, 0, W, W);
