@@ -116,6 +116,8 @@ select{font:inherit;font-size:16px;padding:8px 10px;border:2.5px solid var(--ink
 .chip[aria-pressed=true]{background:var(--yellow);box-shadow:2px 2px 0 var(--ink)}
 .pack{margin:14px 0 0;font-size:16px;font-weight:800;display:flex;align-items:center;gap:8px}
 .pack::after{content:"";flex:1;height:3px;background:var(--ink);border-radius:3px;opacity:.15}
+.bit{position:relative}
+.today{position:absolute;top:-8px;right:-6px;background:var(--pink);color:#fff;font-size:10px;font-weight:800;border:2px solid var(--ink);border-radius:99px;padding:1px 6px}
 .bit .e{font-size:25px;line-height:1}
 .bit[aria-pressed=true]{background:var(--teal);box-shadow:3px 3px 0 var(--ink);transform:translate(-2px,-2px)}
 .fields{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -190,6 +192,7 @@ footer{text-align:center;margin-top:30px;font-size:14px;opacity:.7}
           <h2><span class="num">2</span> Pick the bit</h2>
           <div class="pickbar"><span class="small">Tap a pack to open it</span><button class="btn ghost" id="surprise" type="button">🎲 Surprise me</button></div>
       <section class="packsec open"><button type="button" class="packhead">😂 Classics</button><div class="bits" id="bits" role="group" aria-label="Classic animations"></div></section>
+      <section class="packsec"><button type="button" class="packhead">📅 Days of the Week</button><div class="bits" id="bits6" role="group" aria-label="Day of the week animations"></div></section>
       <section class="packsec"><button type="button" class="packhead">🕺 Full Body</button><div class="bits" id="bits3" role="group" aria-label="Full body animations"></div></section>
       <section class="packsec"><button type="button" class="packhead">👥 Duo <span class="small">· add Friend 2 in step 1</span></button><div class="bits" id="bits5" role="group" aria-label="Duo animations"></div></section>
       <section class="packsec"><button type="button" class="packhead">💼 Strategy Manager</button><div class="bits" id="bits2" role="group" aria-label="Strategy Manager animations"></div></section>
@@ -1199,6 +1202,180 @@ const TEMPLATES = [
     c.beginPath(); c.moveTo(x, y - s * 2); c.quadraticCurveTo(x, y, x + s * 2, y); c.quadraticCurveTo(x, y, x, y + s * 2); c.quadraticCurveTo(x, y, x - s * 2, y); c.quadraticCurveTo(x, y, x, y - s * 2); c.fill();
   }
 }},
+/* ----- Days of the Week pack ----- */
+{ id: 'mon', pack: 'days', dow: 1, name: 'Marvelous Monday', e: '☕', frames: 32, draw(c, t) {
+  const g = c.createLinearGradient(0, 0, 0, W); g.addColorStop(0, '#ffd08a'); g.addColorStop(1, '#ff8fb1'); c.fillStyle = g; c.fillRect(0, 0, W, W);
+  c.save(); c.translate(180, 236); c.rotate(t * TAU / 12); c.fillStyle = 'rgba(255,255,255,.22)';
+  for (let i = 0; i < 12; i++) { c.beginPath(); c.moveTo(0, 0); c.arc(0, 0, 420, i * TAU / 12, i * TAU / 12 + TAU / 24); c.closePath(); c.fill(); } c.restore();
+  c.fillStyle = '#fff3b0'; c.beginPath(); c.arc(180, 236, 120, Math.PI, TAU); c.fill();
+  const bob = Math.sin(TAU * t * 2) * 4;
+  c.beginPath(); c.ellipse(180, 246, 94, 19, 0, 0, TAU); fs(c, '#efe9df', 4);
+  c.beginPath(); c.ellipse(180, 248, 84, 13, 0, 0, TAU); c.fillStyle = '#6b3f1d'; c.fill();
+  drawFace(c, 180, 184 + bob, 168, Math.sin(TAU * t) * .05);
+  c.lineCap = 'round'; c.strokeStyle = INK; c.lineWidth = 22; c.beginPath(); c.arc(284, 288, 30, -Math.PI / 2, Math.PI / 2); c.stroke();
+  c.strokeStyle = '#fffaf3'; c.lineWidth = 14; c.beginPath(); c.arc(284, 288, 30, -Math.PI / 2, Math.PI / 2); c.stroke();
+  c.beginPath(); c.moveTo(86, 246); c.lineTo(98, 326); c.quadraticCurveTo(180, 356, 262, 326); c.lineTo(274, 246); c.ellipse(180, 246, 94, 19, 0, 0, Math.PI); c.closePath(); fs(c, '#fffaf3', 4);
+  heart(c, 180, 296, 15, '#ff4f8b');
+  c.strokeStyle = 'rgba(255,255,255,.85)'; c.lineWidth = 6;
+  for (let k = 0; k < 3; k++) { const ph = (t * 2 + k / 3) % 1, x = [98, 262, 180][k], y = 230 - ph * 90; c.globalAlpha = 1 - ph;
+    c.beginPath(); c.moveTo(x, y); c.bezierCurveTo(x - 14, y - 14, x + 14, y - 24, x, y - 40); c.stroke(); }
+  c.globalAlpha = 1;
+  return { top: 'Marvelous Monday' };
+}},
+{ id: 'tue', pack: 'days', dow: 2, name: 'Terrific Tuesday', e: '🌮', frames: 32, draw(c, t) {
+  const g = c.createLinearGradient(0, 0, 0, W); g.addColorStop(0, '#ffe08a'); g.addColorStop(1, '#ff9f45'); c.fillStyle = g; c.fillRect(0, 0, W, W);
+  const flagCols = ['#ff4f8b', '#2ec4b6', '#7b5cff', '#18b26b', '#ff7a1a'];
+  for (const [y0, n] of [[96, 9], [140, 8]]) {
+    c.strokeStyle = '#6b4423'; c.lineWidth = 1.5; line(c, 0, y0, W, y0);
+    for (let i = 0; i < n; i++) { const x = 6 + i * (W / n), w = W / n - 6, sw = Math.sin(TAU * (t * 2 + i * .13)) * 2;
+      c.fillStyle = flagCols[(i + (y0 > 100 ? 2 : 0)) % 5]; c.beginPath(); c.moveTo(x, y0); c.lineTo(x + w, y0); c.lineTo(x + w + sw, y0 + 30);
+      for (let k = 4; k >= 0; k--) c.lineTo(x + k * w / 4 + sw, y0 + 30 + (k % 2 ? 4 : 0)); c.closePath(); c.fill();
+      c.fillStyle = g; c.beginPath(); c.arc(x + w / 2 + sw / 2, y0 + 14, 4, 0, TAU); c.fill(); }
+  }
+  for (let i = 0; i < 6; i++) { const fr = (rnd(i + 200) + t) % 1, x = rnd(i + 201) * W, y = -20 + fr * 400;
+    c.save(); c.translate(x, y); c.rotate(fr * TAU * (i % 2 ? 1 : -1));
+    if (i % 2) { c.fillStyle = '#e63946'; c.beginPath(); c.ellipse(0, 0, 14, 5, .4, 0, TAU); c.fill(); c.fillStyle = '#18b26b'; c.fillRect(10, -7, 5, 5); }
+    else { c.beginPath(); c.arc(0, 0, 10, 0, TAU); fs(c, '#9be15d', 2); c.strokeStyle = '#e8ffd0'; c.lineWidth = 1.5; for (let k = 0; k < 6; k++) line(c, 0, 0, Math.cos(k * TAU / 6) * 8, Math.sin(k * TAU / 6) * 8); }
+    c.restore(); }
+  const bob = Math.abs(Math.sin(TAU * t * 2)) * -8, rot = Math.sin(TAU * t * 2) * .05;
+  c.save(); c.translate(180, 262 + bob); c.rotate(rot); c.translate(-180, -262);
+  c.beginPath(); c.ellipse(180, 252, 124, 100, 0, 0, Math.PI); c.closePath(); fs(c, '#d99a2b', 4);
+  drawFace(c, 180, 196, 160, 0);
+  c.fillStyle = '#62c94b'; c.strokeStyle = '#2f8a33'; c.lineWidth = 2.5; c.beginPath(); c.moveTo(56, 254);
+  for (let i = 0; i <= 12; i++) c.quadraticCurveTo(56 + i * 20.7 - 10, 230 + (i % 2) * 8, 56 + i * 20.7, 250); c.lineTo(304, 266); c.lineTo(56, 266); c.closePath(); c.fill(); c.stroke();
+  c.fillStyle = '#e63946'; [[90, 246], [150, 242], [214, 246], [266, 244], [120, 252], [240, 252]].forEach(([x, y]) => { c.beginPath(); roundRect(c, x - 7, y - 7, 14, 12, 3); c.fill(); });
+  c.strokeStyle = '#ffd23f'; c.lineWidth = 3; for (let i = 0; i < 14; i++) { const x = 70 + rnd(i + 210) * 220, y = 240 + rnd(i + 211) * 14; line(c, x, y, x + 8, y + 4 * (rnd(i + 212) - .5)); }
+  c.beginPath(); c.ellipse(180, 258, 118, 92, 0, 0, Math.PI); c.closePath(); fs(c, '#f6c453', 4);
+  c.fillStyle = '#d99a2b'; for (let i = 0; i < 20; i++) { const a = rnd(i + 220) * Math.PI, r = .3 + rnd(i + 221) * .62; c.beginPath(); c.arc(180 + Math.cos(a) * 118 * r, 258 + Math.sin(a) * 92 * r, 2.5, 0, TAU); c.fill(); }
+  c.restore();
+  return { top: 'Terrific Tuesday' };
+}},
+{ id: 'wed', pack: 'days', dow: 3, name: 'Wonderful Wednesday', e: '🐫', frames: 32, draw(c, t) {
+  const g = c.createLinearGradient(0, 0, 0, W); g.addColorStop(0, '#ffcf70'); g.addColorStop(1, '#fff0c9'); c.fillStyle = g; c.fillRect(0, 0, W, W);
+  c.fillStyle = '#fff3b0'; c.beginPath(); c.arc(292, 112, 34, 0, TAU); c.fill();
+  const dune = (base, amp, wl, col, off) => { c.fillStyle = col; c.beginPath(); c.moveTo(0, W); for (let x = 0; x <= W; x += 6) c.lineTo(x, base + amp * Math.sin((x + off) / wl)); c.lineTo(W, W); c.closePath(); c.fill(); };
+  dune(244, 16, 50, '#ebb766', t * TAU * 50); dune(300, 20, 70, '#d99a3f', t * TAU * 70 * 2);
+  for (let i = 0; i < 2; i++) { const x = ((rnd(i + 230) * W - t * W * 2 * (i + 1)) % W + W) % W; c.fillStyle = '#4f8f46'; c.fillRect(x - 5, 262, 10, 34); c.fillRect(x - 15, 270, 6, 14); c.fillRect(x + 9, 266, 6, 12); }
+  const bob = Math.sin(TAU * t * 4) * 3, CX = 160, BY = 252 + bob;
+  c.fillStyle = 'rgba(0,0,0,.18)'; c.beginPath(); c.ellipse(CX + 20, 342, 90, 9, 0, 0, TAU); c.fill();
+  const leg = (x, ph, dark) => { const a = Math.sin(TAU * (t * 4 + ph)) * .35; const ex = x + Math.sin(a) * 66, ey = BY + 22 + Math.cos(a) * 66;
+    c.lineCap = 'round'; c.strokeStyle = INK; c.lineWidth = 17; line(c, x, BY + 18, ex, ey); c.strokeStyle = dark ? '#a96b33' : '#c68642'; c.lineWidth = 11; line(c, x, BY + 18, ex, ey);
+    c.fillStyle = '#5a3b20'; c.beginPath(); c.ellipse(ex, ey + 2, 9, 5, 0, 0, TAU); c.fill(); };
+  leg(CX - 40, .5, 1); leg(CX + 46, 0, 1);
+  c.strokeStyle = INK; c.lineWidth = 4; c.beginPath(); c.moveTo(CX - 66, BY - 4); c.quadraticCurveTo(CX - 86, BY + 10 + Math.sin(TAU * t * 4) * 6, CX - 80, BY + 34); c.stroke();
+  c.beginPath(); c.ellipse(CX, BY, 72, 34, 0, 0, TAU); fs(c, '#c68642', 4);
+  for (const hx of [CX - 26, CX + 22]) { c.beginPath(); c.arc(hx, BY - 22, 27, Math.PI, TAU); fs(c, '#c68642', 4); }
+  c.fillStyle = '#c68642'; c.fillRect(CX - 50, BY - 26, 98, 12);
+  leg(CX - 26, 0, 0); leg(CX + 58, .5, 0);
+  c.lineCap = 'round'; c.strokeStyle = INK; c.lineWidth = 32; c.beginPath(); c.moveTo(CX + 56, BY - 6); c.quadraticCurveTo(CX + 94, BY - 24, CX + 98, BY - 66); c.stroke();
+  c.strokeStyle = '#c68642'; c.lineWidth = 25; c.beginPath(); c.moveTo(CX + 56, BY - 6); c.quadraticCurveTo(CX + 94, BY - 24, CX + 98, BY - 66); c.stroke();
+  drawFace(c, CX + 100, BY - 98, 100, Math.sin(TAU * t * 2) * .08);
+  return { top: 'Wonderful Wednesday' };
+}},
+{ id: 'thu', pack: 'days', dow: 4, name: 'Thrilling Thursday', e: '🎢', frames: 32, draw(c, t) {
+  const g = c.createLinearGradient(0, 0, 0, W); g.addColorStop(0, '#6ec3ff'); g.addColorStop(1, '#d6f0ff'); c.fillStyle = g; c.fillRect(0, 0, W, W);
+  c.fillStyle = 'rgba(255,255,255,.9)'; for (let i = 0; i < 3; i++) { const x = ((rnd(i + 240) * 460 - t * 460) % 460 + 460) % 460 - 50, y = 108 + i * 40; [[-22, 6, 16], [0, 0, 22], [22, 6, 16]].forEach(([dx, dy, r]) => { c.beginPath(); c.arc(x + dx, y + dy, r, 0, TAU); c.fill(); }); }
+  const WL = 70, scroll = t * TAU * WL * 2, yT = x => 236 + 54 * Math.sin((x + scroll) / WL);
+  c.strokeStyle = '#a33'; c.lineWidth = 4;
+  const step = 34, off = scroll % step;
+  for (let x = -off; x < W + step; x += step) { line(c, x, yT(x) + 6, x, W); line(c, x, yT(x) + 40, x + step, Math.min(W, yT(x + step) + 40)); }
+  c.strokeStyle = INK; c.lineWidth = 9; c.beginPath(); for (let x = 0; x <= W; x += 4) x ? c.lineTo(x, yT(x)) : c.moveTo(x, yT(x)); c.stroke();
+  c.strokeStyle = '#e63946'; c.lineWidth = 5; c.beginPath(); for (let x = 0; x <= W; x += 4) x ? c.lineTo(x, yT(x)) : c.moveTo(x, yT(x)); c.stroke();
+  const ang = Math.atan(54 / WL * Math.cos((180 + scroll) / WL));
+  c.save(); c.translate(180, yT(180) - 8); c.rotate(ang);
+  drawFace(c, 0, -60, 96, -ang * .4 + Math.sin(TAU * t * 4) * .05);
+  const wave = Math.sin(TAU * t * 4) * .2;
+  for (const d of [-1, 1]) { const hx = d * 50 + Math.sin(wave * d) * 10, hy = -88; c.lineCap = 'round'; c.strokeStyle = INK; c.lineWidth = 13; line(c, d * 32, -26, hx, hy); c.strokeStyle = slots[0].skin; c.lineWidth = 8; line(c, d * 32, -26, hx, hy); c.beginPath(); c.arc(hx, hy, 7, 0, TAU); fs(c, slots[0].skin, 2.5); }
+  c.beginPath(); roundRect(c, -50, -30, 100, 34, 10); fs(c, '#ffd23f', 4);
+  c.fillStyle = '#e63946'; c.fillRect(-50, -12, 100, 6);
+  for (const x of [-30, 30]) { c.beginPath(); c.arc(x, 6, 7, 0, TAU); fs(c, '#555', 2.5); }
+  c.restore();
+  c.strokeStyle = 'rgba(26,20,35,.35)'; c.lineWidth = 3; c.lineCap = 'round';
+  for (let i = 0; i < 4; i++) { const yy = 170 + i * 16, o = ((t * 8 + i * .3) % 1) * 30; line(c, 90 - o, yy, 120 - o, yy); }
+  return { top: 'Thrilling Thursday' };
+}},
+{ id: 'fri', pack: 'days', dow: 5, name: 'Fortunate Friday', e: '🍀', frames: 32, draw(c, t) {
+  const g = c.createRadialGradient(180, 220, 30, 180, 220, 300); g.addColorStop(0, '#8ff0a4'); g.addColorStop(1, '#1f8f4e'); c.fillStyle = g; c.fillRect(0, 0, W, W);
+  ['#ff4d4d', '#ff9f1a', '#ffe14d', '#4dd96b', '#4da6ff', '#a066ff'].forEach((col, i) => { c.strokeStyle = col; c.globalAlpha = .85; c.lineWidth = 11; c.beginPath(); c.arc(60, 300, 250 - i * 11, Math.PI * 1.08, Math.PI * 1.62); c.stroke(); });
+  c.globalAlpha = 1;
+  const clover = (x, y, s, r) => { c.save(); c.translate(x, y); c.rotate(r); c.strokeStyle = '#1b6b30'; c.lineWidth = 3; line(c, 0, 0, 4, 16 * s);
+    for (let k = 0; k < 4; k++) { c.save(); c.rotate(k * Math.PI / 2); heart(c, 0, -7 * s, 6 * s, '#2fbf5a'); c.restore(); } c.restore(); };
+  for (let i = 0; i < 6; i++) { const fr = (rnd(i + 250) + t) % 1; clover(rnd(i + 251) * W, W + 20 - fr * 400, 1 + rnd(i + 252) * .6, fr * TAU); }
+  for (let i = 0; i < 12; i++) { const loops = 1 + Math.floor(rnd(i + 260) * 2), fr = (rnd(i + 261) + t * loops) % 1, x = rnd(i + 262) * W, y = -16 + fr * 380, sx = Math.cos(TAU * (t * 2 * loops + rnd(i + 263)));
+    c.save(); c.translate(x, y); c.scale(sx, 1); c.beginPath(); c.arc(0, 0, 11, 0, TAU); fs(c, '#ffd23f', 2.5); c.fillStyle = '#c9971c'; c.font = '800 12px "Bricolage Grotesque", sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('$', 0, .5); c.restore(); }
+  c.textBaseline = 'alphabetic';
+  const bob = Math.sin(TAU * t * 2) * 4;
+  c.beginPath(); c.ellipse(180, 254, 98, 20, 0, 0, TAU); fs(c, '#2b2b2b', 4);
+  c.fillStyle = '#ffd23f'; c.beginPath(); c.ellipse(180, 252, 86, 14, 0, 0, TAU); c.fill();
+  drawFace(c, 180, 190 + bob, 160, Math.sin(TAU * t) * .06);
+  for (let i = 0; i < 9; i++) { c.beginPath(); c.arc(104 + i * 19, 252 + (i % 2) * 4, 9, 0, TAU); fs(c, '#ffd23f', 2); }
+  c.beginPath(); c.moveTo(84, 256); c.bezierCurveTo(70, 330, 110, 352, 180, 352); c.bezierCurveTo(250, 352, 290, 330, 276, 256); c.ellipse(180, 256, 96, 18, 0, 0, Math.PI); c.closePath(); fs(c, '#2b2b2b', 4);
+  c.fillStyle = 'rgba(255,255,255,.12)'; c.beginPath(); c.ellipse(130, 300, 14, 30, -.3, 0, TAU); c.fill();
+  for (let i = 0; i < 5; i++) { const a = Math.max(0, Math.sin(TAU * (t * 2 + i / 5))), x = 110 + i * 35, y = 236 - (i % 2) * 10, s = 6 * a;
+    c.fillStyle = '#fffbe0'; c.beginPath(); c.moveTo(x, y - s); c.lineTo(x + s * .25, y); c.lineTo(x, y + s); c.lineTo(x - s * .25, y); c.closePath(); c.fill(); c.beginPath(); c.moveTo(x - s, y); c.lineTo(x, y + s * .25); c.lineTo(x + s, y); c.lineTo(x, y - s * .25); c.closePath(); c.fill(); }
+  return { top: 'Fortunate Friday' };
+}},
+{ id: 'sat', pack: 'days', dow: 6, name: 'Sensational Saturday', e: '🍩', frames: 32, draw(c, t) {
+  const g = c.createLinearGradient(0, 0, 0, W); g.addColorStop(0, '#4fd2ee'); g.addColorStop(1, '#1585bd'); c.fillStyle = g; c.fillRect(0, 0, W, W);
+  c.strokeStyle = 'rgba(255,255,255,.35)'; c.lineWidth = 2.5;
+  for (let r = 0; r < 9; r++) { const y = 30 + r * 40, off = t * TAU; c.beginPath(); for (let x = 0; x <= W; x += 8) { const yy = y + Math.sin(x / 30 + off + r) * 4; x ? c.lineTo(x, yy) : c.moveTo(x, yy); } c.stroke(); }
+  for (let i = 0; i < 8; i++) { const a = Math.max(0, Math.sin(TAU * (t * 2 + rnd(i + 270)))); c.fillStyle = `rgba(255,255,255,${a})`; c.beginPath(); c.arc(rnd(i + 271) * W, rnd(i + 272) * W, 2 + a * 2, 0, TAU); c.fill(); }
+  const bb = Math.sin(TAU * t + 1) * 5; c.save(); c.translate(56, 92 + bb); c.rotate(t * TAU / 4);
+  ['#e63946', '#fff', '#2b59c3', '#fff', '#ffd23f', '#fff'].forEach((col, i) => { c.fillStyle = col; c.beginPath(); c.moveTo(0, 0); c.arc(0, 0, 26, i * TAU / 6, (i + 1) * TAU / 6); c.closePath(); c.fill(); });
+  c.strokeStyle = INK; c.lineWidth = 3; c.beginPath(); c.arc(0, 0, 26, 0, TAU); c.stroke(); c.restore();
+  const bob = Math.sin(TAU * t) * 5, rot = Math.sin(TAU * t) * .04, CY = 262 + bob;
+  const rip = (t % 1); c.strokeStyle = `rgba(255,255,255,${.6 * (1 - rip)})`; c.lineWidth = 3; c.beginPath(); c.ellipse(182, CY + 6, 130 + rip * 40, 56 + rip * 16, 0, 0, TAU); c.stroke();
+  c.save(); c.translate(182, CY); c.rotate(rot);
+  const ring = (lower) => { c.beginPath(); if (lower) { c.ellipse(0, 0, 124, 52, 0, 0, Math.PI); c.ellipse(0, -4, 52, 20, 0, Math.PI, 0, true); }
+    else { c.ellipse(0, 0, 124, 52, 0, 0, TAU); c.ellipse(0, -4, 52, 20, 0, 0, TAU, true); } c.closePath(); };
+  ring(false); c.fillStyle = '#e8b46b'; c.fill('evenodd'); c.lineWidth = 4; c.strokeStyle = INK; c.stroke();
+  c.beginPath(); c.ellipse(0, -6, 114, 44, 0, 0, TAU); c.ellipse(0, -6, 58, 22, 0, 0, TAU, true); c.fillStyle = '#ff8fc8'; c.fill('evenodd');
+  c.restore();
+  const fy = CY - 46, fh = 142;
+  drawFace(c, 182, fy, fh, -.18 + rot);
+  const ey = fy - fh / 2 + E1() * fh;
+  c.save(); c.translate(182, fy); c.rotate(-.18 + rot); c.translate(-182, -fy);
+  c.fillStyle = 'rgba(20,20,30,.93)'; for (const d of [-1, 1]) { c.beginPath(); roundRect(c, 182 + d * fh * .16 - 18, ey - 9, 36, 22, 9); c.fill(); }
+  c.strokeStyle = 'rgba(20,20,30,.93)'; c.lineWidth = 4; line(c, 172, ey, 192, ey);
+  c.fillStyle = 'rgba(255,255,255,.5)'; for (const d of [-1, 1]) c.fillRect(182 + d * fh * .16 - 12, ey - 5, 7, 4);
+  c.restore();
+  c.save(); c.translate(182, CY); c.rotate(rot);
+  ring(true); c.fillStyle = '#e8b46b'; c.fill(); c.lineWidth = 4; c.strokeStyle = INK; c.stroke();
+  c.beginPath(); c.ellipse(0, -6, 114, 44, 0, 0, Math.PI); c.ellipse(0, -10, 58, 22, 0, Math.PI, 0, true); c.closePath(); c.fillStyle = '#ff8fc8'; c.fill();
+  const spr = ['#fff', '#ffd23f', '#2ec4b6', '#7b5cff', '#e63946'];
+  for (let i = 0; i < 22; i++) { const a = rnd(i + 280) * Math.PI, rr = .62 + rnd(i + 281) * .3; c.save(); c.translate(Math.cos(a) * 114 * rr, -6 + Math.sin(a) * 44 * rr); c.rotate(rnd(i + 282) * TAU); c.fillStyle = spr[i % 5]; c.fillRect(-4, -1.5, 8, 3); c.restore(); }
+  c.restore();
+  return { top: 'Sensational Saturday' };
+}},
+{ id: 'sun', pack: 'days', dow: 0, name: 'Snoozy Sunday', e: '😴', frames: 32, draw(c, t) {
+  c.fillStyle = '#d9cdf2'; c.fillRect(0, 0, W, W);
+  c.fillStyle = '#bfe7ff'; c.fillRect(30, 30, 116, 96); c.fillStyle = '#fff3b0'; c.beginPath(); c.arc(116, 58, 14, 0, TAU); c.fill();
+  c.fillStyle = '#fff'; const cx = 30 + ((t * 116) % 140) - 12; [[-10, 4, 9], [0, 0, 12], [12, 4, 9]].forEach(([dx, dy, r]) => { c.beginPath(); c.arc(cx + dx, 92 + dy, r, 0, TAU); c.fill(); });
+  c.strokeStyle = '#fff'; c.lineWidth = 6; c.strokeRect(30, 30, 116, 96); line(c, 88, 30, 88, 126);
+  c.fillStyle = '#ff9cc7'; c.fillRect(18, 22, 22, 120); c.fillRect(136, 22, 22, 120);
+  c.beginPath(); roundRect(c, 52, 150, 270, 110, 24); fs(c, '#8b5e3c', 4);
+  c.fillStyle = '#fff'; c.fillRect(40, 248, 300, 30);
+  c.beginPath(); c.ellipse(180, 232, 78, 28, 0, 0, TAU); fs(c, '#ffffff', 3.5);
+  drawFace(c, 172, 210, 136, -.42);
+  const br = Math.sin(TAU * t) * 3;
+  c.beginPath(); c.moveTo(24, 262 - br); c.quadraticCurveTo(120, 246 - br, 220, 258 - br); c.quadraticCurveTo(300, 266, 348, 256); c.lineTo(348, W); c.lineTo(24, W); c.closePath(); fs(c, '#7b9cff', 4);
+  c.strokeStyle = '#5f7fe6'; c.lineWidth = 6; line(c, 24, 286 - br * .6, 348, 280);
+  c.fillStyle = '#ffffff'; for (let i = 0; i < 9; i++) { const x = 40 + i * 34, y = 306 + (i % 2) * 22; c.beginPath(); c.arc(x, y, 3, 0, TAU); c.fill(); }
+  c.save(); c.translate(116, 268 - br); c.beginPath(); c.ellipse(0, 0, 30, 15 + br * .3, 0, 0, TAU); fs(c, '#9aa3ad', 3);
+  c.beginPath(); c.arc(-24, -6, 11, 0, TAU); fs(c, '#9aa3ad', 3);
+  c.beginPath(); c.moveTo(-32, -13); c.lineTo(-30, -24); c.lineTo(-24, -15); c.fill(); c.beginPath(); c.moveTo(-22, -16); c.lineTo(-16, -25); c.lineTo(-14, -13); c.fill();
+  c.strokeStyle = INK; c.lineWidth = 2; line(c, -28, -6, -24, -5); line(c, -20, -6, -16, -5);
+  c.strokeStyle = '#9aa3ad'; c.lineWidth = 7; c.lineCap = 'round'; c.beginPath(); c.moveTo(26, 4); c.quadraticCurveTo(40, 14, 20, 16); c.stroke(); c.restore();
+  c.beginPath(); c.rect(292, 252, 56, 70); fs(c, '#a0703f', 3.5);
+  c.beginPath(); roundRect(c, 306, 228, 26, 26, 5); fs(c, '#fff', 3);
+  c.strokeStyle = 'rgba(255,255,255,.9)'; c.lineWidth = 3; for (let k = 0; k < 2; k++) { const ph = (t * 2 + k / 2) % 1; c.globalAlpha = 1 - ph; c.beginPath(); c.moveTo(314 + k * 10, 222 - ph * 30); c.quadraticCurveTo(306 + k * 10, 212 - ph * 30, 316 + k * 10, 200 - ph * 30); c.stroke(); }
+  c.globalAlpha = 1;
+  c.font = '30px Anton, Impact, sans-serif'; c.textAlign = 'center'; c.lineJoin = 'round';
+  for (let k = 0; k < 3; k++) { const ph = (t + k / 3) % 1, s = .6 + ph * .9; c.save(); c.translate(232 + ph * 60, 160 - ph * 110); c.scale(s, s); c.rotate(-.2); c.globalAlpha = Math.min(1, ph * 5, (1 - ph) * 3);
+    c.lineWidth = 6; c.strokeStyle = '#fff'; c.strokeText('Z', 0, 0); c.fillStyle = '#5b3fc4'; c.fillText('Z', 0, 0); c.restore(); }
+  c.globalAlpha = 1;
+  return { bottom: 'Snoozy Sunday' };
+}},
 /* ----- Full Body pack ----- */
 { id: 'scene', pack: 'body', name: 'Your Scene', e: '🖼️', frames: 32, draw(c, t) {
   drawSceneBg(c);
@@ -1822,7 +1999,8 @@ TEMPLATES.forEach(tp => {
   const b = document.createElement('button'); b.type = 'button'; b.className = 'bit'; b.dataset.id = tp.id;
   b.setAttribute('aria-pressed', tp === cur); b.innerHTML = `<span class="e">${tp.e}</span><span>${tp.name}</span>`;
   b.onclick = () => { cur = tp; start = performance.now(); document.querySelectorAll('.bit').forEach(x => x.setAttribute('aria-pressed', x === b)); syncPanels(); };
-  ({ strategy: $('bits2'), body: $('bits3'), romance: $('bits4'), duo: $('bits5') }[tp.pack] || bitsEl).appendChild(b);
+  if (tp.dow !== undefined && tp.dow === new Date().getDay()) { b.classList.add('isToday'); b.insertAdjacentHTML('beforeend', '<span class="today">Today</span>'); }
+  ({ strategy: $('bits2'), body: $('bits3'), romance: $('bits4'), duo: $('bits5'), days: $('bits6') }[tp.pack] || bitsEl).appendChild(b);
 });
 
 function chips(el, list, get, set) {
