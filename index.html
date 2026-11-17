@@ -161,7 +161,7 @@ footer{text-align:center;margin-top:30px;font-size:14px;opacity:.7}
         <div class="label">Saved faces <span class="small">· tap one to use it</span></div>
         <div class="faces" id="faces"></div>
       </div>
-      <div class="seg" id="shapeSeg" role="group" aria-label="Cutout shape"><button type="button" data-s="oval" aria-pressed="true">⬭ Oval</button><button type="button" data-s="lasso" aria-pressed="false">✂️ Trace head</button></div>
+      <div class="seg seg3" id="shapeSeg" role="group" aria-label="Cutout shape"><button type="button" data-s="oval" aria-pressed="true">⬭ Oval</button><button type="button" data-s="lasso" aria-pressed="false">✂️ Trace head</button><button type="button" data-s="auto" aria-pressed="false">✨ Auto</button></div>
       <div class="editor-box"><canvas id="editor" width="600" height="600" aria-label="Drag to position the face inside the oval"></canvas></div>
       <p class="detect" id="detectNote" aria-live="polite"></p>
       <label class="check" id="snapWrap" hidden style="justify-content:center;margin:6px 0 0"><input type="checkbox" id="snapOn" checked> 🧲 Smart cut-out</label>
@@ -713,7 +713,7 @@ $('file').addEventListener('change', e => {
     const c = document.createElement('canvas');
     c.width = Math.round(im.naturalWidth * s); c.height = Math.round(im.naturalHeight * s);
     c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
-    src = c; slots[active].src = c; slots[active].has = true; slots[active].shape = 'oval'; slots[active].lasso = null; slots[active].lassoRaw = null; slots[active].mask = null; slots[active].eyesImg = null; slots[active].jaw = null; tracing = false; brushMode = 'move'; syncShapeUI(); URL.revokeObjectURL(url); resetView(); activeFace = null; renderFaces(); $('saveNote').textContent = 'Check the fit, then tap 💾 Save this face to keep it.';
+    src = c; slots[active].src = c; slots[active].has = true; slots[active].shape = 'oval'; slots[active].lasso = null; slots[active].lassoRaw = null; slots[active].mask = null; slots[active].auto = false; slots[active].eyesImg = null; slots[active].jaw = null; tracing = false; brushMode = 'move'; syncShapeUI(); URL.revokeObjectURL(url); resetView(); activeFace = null; renderFaces(); $('saveNote').textContent = 'Check the fit, then tap 💾 Save this face to keep it.';
     autoFind(c);
     if (active === 1 && cur.pack !== 'duo' && !['teamsdm', 'clones', 'cameraon'].includes(cur.id)) { const b = document.querySelector('#bits5 .bit'); if (b) { b.click(); openPackOf(b); } }
   };
@@ -2217,16 +2217,16 @@ function applyDetection(d) {
 }
 
 /* ---------- cutout shape: oval or a traced head ---------- */
-const HINTS = { oval: 'Drag to move · pinch or slide to zoom · fit the face in the oval', lasso: 'Drag or pinch to adjust · tap ✂️ Trace head again to redo the outline', saved: 'Saved face · tap ✂️ Trace head on a new photo to cut out a different shape', trace: '✏️ Trace around their head with one finger (include the hair), then lift' };
+const HINTS = { auto: 'AI cut-out · drag or pinch to adjust · fix bits with ➕ Keep / ➖ Erase', oval: 'Drag to move · pinch or slide to zoom · fit the face in the oval', lasso: 'Drag or pinch to adjust · tap ✂️ Trace head again to redo the outline', saved: 'Saved face · tap ✂️ Trace head on a new photo to cut out a different shape', trace: '✏️ Trace around their head with one finger (include the hair), then lift' };
 $('snapOn') && ($('snapOn').onchange = e => { snapOn = e.target.checked; if (slots[active].shape === 'lasso' && slots[active].lassoRaw) { setDetect(snapOn ? '✂️ Cutting out the head…' : ''); setTimeout(() => { buildMask(); refresh(); syncShapeUI(); setDetect(snapOn ? '✂️ Smart cut-out on.' : 'Using your trace exactly as drawn.'); }, 40); } });
 $('brushSeg').querySelectorAll('button').forEach(b => b.onclick = () => { brushMode = b.dataset.b; brushAt = null; syncShapeUI(); drawEditor(); });
 $('brushUndo').onclick = () => { const sl = slots[active]; if (!sl.mask || !sl.undo || !sl.undo.length) return; sl.mask.cv.getContext('2d').putImageData(sl.undo.pop(), 0, 0); refresh(); syncShapeUI(); };
 function syncShapeUI() {
-  const sh = tracing ? 'lasso' : slots[active].shape;
+  const sh = tracing ? 'lasso' : (slots[active].shape === 'lasso' && slots[active].auto ? 'auto' : slots[active].shape);
   $('shapeSeg').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.s === sh));
-  $('edHint').textContent = HINTS[tracing ? 'trace' : slots[active].shape];
+  $('edHint').textContent = HINTS[tracing ? 'trace' : sh === 'auto' ? 'auto' : slots[active].shape];
   ed.style.cursor = tracing || brushMode !== 'move' ? 'crosshair' : '';
-  $('snapWrap').hidden = !(tracing || slots[active].shape === 'lasso');
+  $('snapWrap').hidden = !(tracing || (slots[active].shape === 'lasso' && slots[active].lassoRaw));
   const canBrush = !tracing && slots[active].shape === 'lasso' && !!slots[active].mask;
   $('brushRow').hidden = !canBrush; if (!canBrush) brushMode = 'move';
   $('brushSeg').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.b === brushMode));
@@ -2234,8 +2234,9 @@ function syncShapeUI() {
   if (canBrush && brushMode !== 'move') $('edHint').textContent = brushMode === 'keep' ? '➕ Paint over anything that should stay (like missing hair)' : '➖ Paint over leftover background to erase it';
 }
 $('shapeSeg').querySelectorAll('button').forEach(b => b.onclick = () => {
-  if (b.dataset.s === 'lasso') { tracing = true; tracePts = []; }
-  else { tracing = false; slots[active].shape = 'oval'; refresh(); }
+  if (b.dataset.s === 'auto') { autoCut(); return; }
+  if (b.dataset.s === 'lasso') { tracing = true; tracePts = []; slots[active].auto = false; }
+  else { tracing = false; slots[active].shape = 'oval'; slots[active].auto = false; refresh(); }
   syncShapeUI(); drawEditor();
 });
 let snapOn = true;
@@ -2363,6 +2364,78 @@ function maskPoints(m) {
   for (let v = 0; v < m.cv.height; v += 2) for (let u = 0; u < m.cv.width; u += 2) if (d[(v * m.cv.width + u) * 4 + 3] > 127) out.push({ x: m.x0 + u / m.f, y: m.y0 + v / m.f });
   return out;
 }
+/* ---------- ✨ AI cut-out: MediaPipe selfie-multiclass segmenter, loaded on first use ---------- */
+const MP_BASE = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22-rc.20250304';
+const MP_MODEL = 'https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_multiclass_256x256/float32/latest/selfie_multiclass_256x256.tflite';
+let segP = null;
+const withTimeout = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
+function loadSegmenter() {
+  if (window.__tgifSegMock) return Promise.resolve(window.__tgifSegMock); // test hook
+  if (!segP) {
+    segP = (async () => {
+      let mod; try { mod = await import(MP_BASE + '/vision_bundle.mjs'); } catch (e) { mod = await import(MP_BASE); }
+      const { FilesetResolver, ImageSegmenter } = mod;
+      const files = await FilesetResolver.forVisionTasks(MP_BASE + '/wasm');
+      // CPU on purpose: the GPU path scrambles this model's categories on iPhone Safari
+      return ImageSegmenter.createFromOptions(files, { baseOptions: { modelAssetPath: MP_MODEL, delegate: 'CPU' }, runningMode: 'IMAGE', outputCategoryMask: true, outputConfidenceMasks: false });
+    })();
+    segP.catch(() => { segP = null; });
+  }
+  return segP;
+}
+async function autoCut() {
+  const sl = slots[active];
+  if (!sl.has) { setDetect('Upload a photo first, then tap ✨ Auto.'); return; }
+  const photo = src; tracing = false;
+  setDetect(segP || window.__tgifSegMock ? '✨ Cutting out…' : '✨ Loading the AI model (first time only, about 25 MB)…');
+  $('shapeSeg').querySelectorAll('button').forEach(b => b.disabled = true);
+  let seg;
+  try { seg = await withTimeout(loadSegmenter(), 90000); }
+  catch (e) {
+    $('shapeSeg').querySelectorAll('button').forEach(b => b.disabled = false);
+    setDetect(inClaude ? "✨ The AI cut-out works on the website (big-head-mode.vercel.app) — it's blocked inside this Claude preview." : "Couldn't load the AI model — check your connection and try again.");
+    syncShapeUI(); return;
+  }
+  $('shapeSeg').querySelectorAll('button').forEach(b => b.disabled = false);
+  if (src !== photo) return;
+  setDetect('✨ Cutting out…'); await new Promise(r => setTimeout(r, 20));
+  const k = Math.min(1, 768 / Math.max(photo.width, photo.height)), cv = document.createElement('canvas');
+  cv.width = Math.round(photo.width * k); cv.height = Math.round(photo.height * k); cv.getContext('2d').drawImage(photo, 0, 0, cv.width, cv.height);
+  let cats, mw, mh;
+  try {
+    const res = seg.segment(cv), cm = res.categoryMask; mw = cm.width; mh = cm.height; cats = cm.getAsUint8Array().slice();
+    if (res.close) res.close();
+  } catch (e) { setDetect("The AI cut-out didn't work on this photo — try ✂️ Trace head instead."); syncShapeUI(); return; }
+  const N = mw * mh, f = mw / photo.width, on = new Uint8Array(N);
+  for (let i = 0; i < N; i++) { const c = cats[i]; on[i] = c === 1 || c === 3 || c === 5 ? 1 : 0; } // hair, face skin, accessories (glasses, hats)
+  const E = sl.eyesImg, jw = sl.jaw;
+  if (E && jw) { // head only: drop skin/accessories well below the chin (hair can hang lower)
+    const dn = q => (q.x - E.x) * -Math.sin(jw.ang) + (q.y - E.y) * Math.cos(jw.ang), cd = dn(jw.chin);
+    for (let v = 0; v < mh; v++) for (let u = 0; u < mw; u++) { const i = v * mw + u; if (on[i] && cats[i] !== 1 && dn({ x: (u + .5) / f, y: (v + .5) / f }) > cd * 1.2) on[i] = 0; }
+  }
+  // keep the person whose face we found (or the biggest blob), then fill holes
+  const comp = new Int32Array(N).fill(-1), q = new Int32Array(N); let best = -1, bestN = 0, seedComp = -1, nc = 0;
+  const seed = E ? Math.round(E.y * f) * mw + Math.round(E.x * f) : -1;
+  for (let s0 = 0; s0 < N; s0++) {
+    if (!on[s0] || comp[s0] >= 0) continue;
+    let h = 0, t = 0; q[t++] = s0; comp[s0] = nc;
+    while (h < t) { const i = q[h++], u = i % mw; for (const j of [u > 0 ? i - 1 : -1, u < mw - 1 ? i + 1 : -1, i - mw, i + mw]) if (j >= 0 && j < N && on[j] && comp[j] < 0) { comp[j] = nc; q[t++] = j; } }
+    if (t > bestN) { bestN = t; best = nc; } nc++;
+  }
+  if (seed >= 0 && seed < N) { for (let r = 0; r < 40 && seedComp < 0; r += 2) for (let dy = -r; dy <= r && seedComp < 0; dy += 2) for (let dx = -r; dx <= r; dx += 2) { const j = seed + dy * mw + dx; if (j >= 0 && j < N && comp[j] >= 0) { seedComp = comp[j]; break; } } }
+  const pick = seedComp >= 0 ? seedComp : best;
+  if (pick < 0 || bestN < N * .002) { setDetect("The AI couldn't find a person here — try ✂️ Trace head instead."); syncShapeUI(); return; }
+  const out = new Uint8Array(N); let h = 0, t = 0;
+  for (let i = 0; i < N; i++) { const u = i % mw, v = (i / mw) | 0; if ((u === 0 || v === 0 || u === mw - 1 || v === mh - 1) && comp[i] !== pick) { out[i] = 1; q[t++] = i; } }
+  while (h < t) { const i = q[h++], u = i % mw; for (const j of [u > 0 ? i - 1 : -1, u < mw - 1 ? i + 1 : -1, i - mw, i + mw]) if (j >= 0 && j < N && comp[j] !== pick && !out[j]) { out[j] = 1; q[t++] = j; } }
+  const mc = document.createElement('canvas'); mc.width = mw; mc.height = mh; const mx = mc.getContext('2d'), id = mx.createImageData(mw, mh);
+  for (let i = 0; i < N; i++) if (!out[i]) id.data[i * 4 + 3] = 255;
+  mx.putImageData(id, 0, 0);
+  if (src !== photo) return;
+  Object.assign(sl, { mask: { cv: mc, x0: 0, y0: 0, f }, lassoRaw: null, lasso: null, shape: 'lasso', auto: true, undo: [] });
+  brushMode = 'move'; fitTraced();
+  setDetect('✨ Cut out by AI! Fix any bits with ➕ Keep / ➖ Erase.'); syncShapeUI();
+}
 /* ---------- touch-up brush on the cut-out ---------- */
 let brushMode = 'move', brushAt = null;
 function paintMask(a, b) {
@@ -2377,7 +2450,7 @@ function finishTrace() {
   if (pts2.length < 12 || Math.abs(area) / 2 < 6000) { setDetect('Trace all the way around the head, then lift your finger.'); drawEditor(); return; }
   const step = Math.max(1, Math.floor(pts2.length / 220));
   const sl = slots[active];
-  sl.lassoRaw = pts2.filter((_, i) => i % step === 0).map(viewToImg); sl.lasso = sl.lassoRaw; sl.mask = null;
+  sl.lassoRaw = pts2.filter((_, i) => i % step === 0).map(viewToImg); sl.lasso = sl.lassoRaw; sl.mask = null; sl.auto = false;
   sl.shape = 'lasso'; tracing = false; brushMode = 'move';
   setDetect(snapOn ? '✂️ Cutting out the head…' : '✂️ Head traced!'); syncShapeUI(); drawEditor();
   setTimeout(() => {
@@ -2513,7 +2586,7 @@ function useFace(f) {
   im.onload = () => {
     const c = document.createElement('canvas'); c.width = c.height = 600;
     c.getContext('2d').drawImage(im, 100, 100, 400, 400);
-    src = c; slots[active].src = c; slots[active].has = true; slots[active].shape = 'saved'; slots[active].lasso = null; slots[active].mask = null; tracing = false; brushMode = 'move'; syncShapeUI(); slots[active].name = f.name || ''; $('fname').value = slots[active].name; st.eye = f.eye; activeFace = f.id; resetView(); renderFaces();
+    src = c; slots[active].src = c; slots[active].has = true; slots[active].shape = 'saved'; slots[active].lasso = null; slots[active].mask = null; slots[active].auto = false; tracing = false; brushMode = 'move'; syncShapeUI(); slots[active].name = f.name || ''; $('fname').value = slots[active].name; st.eye = f.eye; activeFace = f.id; resetView(); renderFaces();
     $('saveNote').textContent = ''; setDetect('');
     showPage('make');
   };
