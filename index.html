@@ -95,6 +95,7 @@ input[type=range]{width:100%;accent-color:var(--pink);height:28px}
 .check{display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px;margin-top:10px}
 .check input{width:20px;height:20px;accent-color:var(--pink)}
 .seg{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px}
+.seg3{grid-template-columns:repeat(3,1fr)}
 .seg button{font:inherit;font-weight:700;font-size:14px;color:var(--ink);border:2.5px solid var(--ink);border-radius:12px;background:#fff;padding:8px 4px;cursor:pointer}
 .seg button[aria-pressed=true]{background:var(--teal);box-shadow:2px 2px 0 var(--ink)}
 .dancerbox{border:2.5px solid var(--ink);border-radius:14px;background:#fff;padding:12px;margin-top:10px}
@@ -163,7 +164,11 @@ footer{text-align:center;margin-top:30px;font-size:14px;opacity:.7}
       <div class="seg" id="shapeSeg" role="group" aria-label="Cutout shape"><button type="button" data-s="oval" aria-pressed="true">⬭ Oval</button><button type="button" data-s="lasso" aria-pressed="false">✂️ Trace head</button></div>
       <div class="editor-box"><canvas id="editor" width="600" height="600" aria-label="Drag to position the face inside the oval"></canvas></div>
       <p class="detect" id="detectNote" aria-live="polite"></p>
-      <label class="check" id="snapWrap" hidden style="justify-content:center;margin:6px 0 0"><input type="checkbox" id="snapOn" checked> 🧲 Snap to edges</label>
+      <label class="check" id="snapWrap" hidden style="justify-content:center;margin:6px 0 0"><input type="checkbox" id="snapOn" checked> 🧲 Smart cut-out</label>
+      <div id="brushRow" hidden>
+        <div class="seg seg3" id="brushSeg" role="group" aria-label="Touch-up brush"><button type="button" data-b="move" aria-pressed="true">✋ Move</button><button type="button" data-b="keep" aria-pressed="false">➕ Keep</button><button type="button" data-b="erase" aria-pressed="false">➖ Erase</button></div>
+        <div class="row" style="margin-top:4px"><button type="button" class="linkbtn" id="brushUndo">↶ Undo touch-up</button></div>
+      </div>
       <p class="hint" id="edHint">Drag to move · pinch or slide to zoom · fit the face in the oval</p>
       <div class="slider"><label for="zoom">Zoom</label><input id="zoom" type="range" min="-1.5" max="3.2" step="0.01" value="0"></div>
       <div class="slider"><label for="tilt">Tilt</label><input id="tilt" type="range" min="-45" max="45" step="1" value="0"></div>
@@ -337,6 +342,12 @@ function drawEditor() {
       c.strokeStyle = 'rgba(26,16,36,.8)'; c.lineWidth = 10; c.beginPath(); tracePts.forEach((p, i) => i ? c.lineTo(p.x, p.y) : c.moveTo(p.x, p.y)); c.stroke();
       c.strokeStyle = '#ff4f8b'; c.lineWidth = 5; c.stroke();
       const a = tracePts[0]; c.fillStyle = '#ffd23f'; c.beginPath(); c.arc(a.x, a.y, 9, 0, TAU); c.fill(); }
+  } else if (shape === 'lasso' && slots[active].mask) {
+    const oc = edOverlay || (edOverlay = Object.assign(document.createElement('canvas'), { width: 600, height: 600 })), ox = oc.getContext('2d');
+    ox.clearRect(0, 0, 600, 600); ox.globalCompositeOperation = 'source-over'; ox.fillStyle = 'rgba(26,16,36,.66)'; ox.fillRect(0, 0, 600, 600);
+    ox.globalCompositeOperation = 'destination-out'; drawMaskTo(ox, 300, 300, slots[active].mask); ox.globalCompositeOperation = 'source-over';
+    c.drawImage(oc, 0, 0);
+    if (brushMode !== 'move' && brushAt) { c.setLineDash([]); c.lineWidth = 3; c.strokeStyle = brushMode === 'keep' ? '#2ec4b6' : '#ff4f8b'; c.beginPath(); c.arc(brushAt.x, brushAt.y, 18, 0, TAU); c.stroke(); }
   } else if (shape !== 'saved') {
     c.save(); c.fillStyle = 'rgba(26,16,36,.62)'; c.beginPath(); c.rect(0, 0, 600, 600); shapePath(c, 300, 300); c.fill('evenodd'); c.restore();
     c.lineWidth = 5; c.setLineDash([18, 12]); c.strokeStyle = '#ffd23f'; c.beginPath(); shapePath(c, 300, 300); c.stroke();
@@ -356,7 +367,7 @@ const slots = [
 ];
 let active = 0, curEye = 0.42;
 slots.forEach(sl => { sl.shape = 'oval'; sl.lasso = null; sl.eyesImg = null; });
-let tracing = false, tracePts = [];
+let tracing = false, tracePts = [], edOverlay = null;
 // map a point on the photo to the editor (cx,cy = 300,300) or the face canvas (200,200), and back
 function imgToView(p, cx, cy) {
   const k = baseScale * st.zoom, x = (p.x - src.width / 2) * k, y = (p.y - src.height / 2) * k, cr = Math.cos(st.rot), sr = Math.sin(st.rot);
@@ -381,10 +392,10 @@ function updateFace() {
   c.save(); drawSrc(c, 200, 200); c.restore();
   const shape = slots[active].shape;
   if (shape === 'saved') { sampleSkin(); return; } // a saved face already carries its cutout
-  if (shape === 'lasso' && slots[active].lasso) {
+  if (shape === 'lasso' && (slots[active].mask || slots[active].lasso)) {
     const m = document.createElement('canvas'); m.width = m.height = 400; const mc = m.getContext('2d');
-    try { mc.filter = 'blur(1.5px)'; } catch (e) {}
-    mc.fillStyle = '#000'; mc.beginPath(); shapePath(mc, 200, 200); mc.fill();
+    try { mc.filter = 'blur(1.8px)'; } catch (e) {} // soft, feathered edge (nicer on hair)
+    if (slots[active].mask) drawMaskTo(mc, 200, 200, slots[active].mask); else { mc.fillStyle = '#000'; mc.beginPath(); shapePath(mc, 200, 200); mc.fill(); }
     c.save(); c.globalCompositeOperation = 'destination-in'; c.drawImage(m, 0, 0); c.restore();
     sampleSkin(); return;
   }
@@ -665,10 +676,16 @@ const clampZoom = z => Math.min(Math.pow(2, 3.2), Math.max(Math.pow(2, -1.5), z)
 const edPt = e => { const r = ed.getBoundingClientRect(); return { x: (e.clientX - r.left) * 600 / r.width, y: (e.clientY - r.top) * 600 / r.height }; };
 ed.addEventListener('pointerdown', e => {
   if (tracing) { e.preventDefault(); try { ed.setPointerCapture(e.pointerId); } catch (err) {} tracePts = [edPt(e)]; drawEditor(); return; }
+  if (brushMode !== 'move' && slots[active].mask) {
+    e.preventDefault(); try { ed.setPointerCapture(e.pointerId); } catch (err) {}
+    const sl = slots[active], cv = sl.mask.cv; sl.undo = sl.undo || []; sl.undo.push(cv.getContext('2d').getImageData(0, 0, cv.width, cv.height)); if (sl.undo.length > 20) sl.undo.shift();
+    brushAt = edPt(e); brushAt.down = true; paintMask(brushAt, brushAt); refresh(); syncShapeUI(); return;
+  }
   ed.setPointerCapture(e.pointerId); pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
 });
 ed.addEventListener('pointermove', e => {
   if (tracing) { if (!tracePts.length) return; const q = edPt(e), l = tracePts[tracePts.length - 1]; if (Math.hypot(q.x - l.x, q.y - l.y) > 4) { tracePts.push(q); drawEditor(); } return; }
+  if (brushMode !== 'move' && slots[active].mask) { const q = edPt(e); if (brushAt && brushAt.down) { paintMask(brushAt, q); q.down = true; brushAt = q; refresh(); } else { brushAt = q; drawEditor(); } return; }
   if (!pts.has(e.pointerId)) return;
   const prev = pts.get(e.pointerId), k = ed.width / ed.getBoundingClientRect().width;
   if (pts.size === 1) {
@@ -681,7 +698,7 @@ ed.addEventListener('pointermove', e => {
   pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
   syncSliders(); refresh();
 });
-['pointerup', 'pointercancel', 'lostpointercapture'].forEach(n => ed.addEventListener(n, e => { if (tracing && tracePts.length) { finishTrace(); return; } pts.delete(e.pointerId); }));
+['pointerup', 'pointercancel', 'lostpointercapture'].forEach(n => ed.addEventListener(n, e => { if (tracing && tracePts.length) { finishTrace(); return; } if (brushAt && brushAt.down) { brushAt.down = false; return; } pts.delete(e.pointerId); }));
 ed.addEventListener('wheel', e => {
   e.preventDefault(); const nz = clampZoom(st.zoom * Math.exp(-e.deltaY * 0.0015)), r = nz / st.zoom;
   st.ox *= r; st.oy *= r; st.zoom = nz; syncSliders(); refresh();
@@ -696,7 +713,7 @@ $('file').addEventListener('change', e => {
     const c = document.createElement('canvas');
     c.width = Math.round(im.naturalWidth * s); c.height = Math.round(im.naturalHeight * s);
     c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
-    src = c; slots[active].src = c; slots[active].has = true; slots[active].shape = 'oval'; slots[active].lasso = null; slots[active].lassoRaw = null; slots[active].eyesImg = null; slots[active].jaw = null; tracing = false; syncShapeUI(); URL.revokeObjectURL(url); resetView(); activeFace = null; renderFaces(); $('saveNote').textContent = 'Check the fit, then tap 💾 Save this face to keep it.';
+    src = c; slots[active].src = c; slots[active].has = true; slots[active].shape = 'oval'; slots[active].lasso = null; slots[active].lassoRaw = null; slots[active].mask = null; slots[active].eyesImg = null; slots[active].jaw = null; tracing = false; brushMode = 'move'; syncShapeUI(); URL.revokeObjectURL(url); resetView(); activeFace = null; renderFaces(); $('saveNote').textContent = 'Check the fit, then tap 💾 Save this face to keep it.';
     autoFind(c);
     if (active === 1 && cur.pack !== 'duo' && !['teamsdm', 'clones', 'cameraon'].includes(cur.id)) { const b = document.querySelector('#bits5 .bit'); if (b) { b.click(); openPackOf(b); } }
   };
@@ -2201,13 +2218,20 @@ function applyDetection(d) {
 
 /* ---------- cutout shape: oval or a traced head ---------- */
 const HINTS = { oval: 'Drag to move · pinch or slide to zoom · fit the face in the oval', lasso: 'Drag or pinch to adjust · tap ✂️ Trace head again to redo the outline', saved: 'Saved face · tap ✂️ Trace head on a new photo to cut out a different shape', trace: '✏️ Trace around their head with one finger (include the hair), then lift' };
-$('snapOn') && ($('snapOn').onchange = e => { snapOn = e.target.checked; if (slots[active].shape === 'lasso') { applyLasso(); refresh(); } });
+$('snapOn') && ($('snapOn').onchange = e => { snapOn = e.target.checked; if (slots[active].shape === 'lasso' && slots[active].lassoRaw) { setDetect(snapOn ? '✂️ Cutting out the head…' : ''); setTimeout(() => { buildMask(); refresh(); syncShapeUI(); setDetect(snapOn ? '✂️ Smart cut-out on.' : 'Using your trace exactly as drawn.'); }, 40); } });
+$('brushSeg').querySelectorAll('button').forEach(b => b.onclick = () => { brushMode = b.dataset.b; brushAt = null; syncShapeUI(); drawEditor(); });
+$('brushUndo').onclick = () => { const sl = slots[active]; if (!sl.mask || !sl.undo || !sl.undo.length) return; sl.mask.cv.getContext('2d').putImageData(sl.undo.pop(), 0, 0); refresh(); syncShapeUI(); };
 function syncShapeUI() {
   const sh = tracing ? 'lasso' : slots[active].shape;
   $('shapeSeg').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.s === sh));
   $('edHint').textContent = HINTS[tracing ? 'trace' : slots[active].shape];
-  ed.style.cursor = tracing ? 'crosshair' : '';
+  ed.style.cursor = tracing || brushMode !== 'move' ? 'crosshair' : '';
   $('snapWrap').hidden = !(tracing || slots[active].shape === 'lasso');
+  const canBrush = !tracing && slots[active].shape === 'lasso' && !!slots[active].mask;
+  $('brushRow').hidden = !canBrush; if (!canBrush) brushMode = 'move';
+  $('brushSeg').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.b === brushMode));
+  $('brushUndo').disabled = !(slots[active].undo && slots[active].undo.length);
+  if (canBrush && brushMode !== 'move') $('edHint').textContent = brushMode === 'keep' ? '➕ Paint over anything that should stay (like missing hair)' : '➖ Paint over leftover background to erase it';
 }
 $('shapeSeg').querySelectorAll('button').forEach(b => b.onclick = () => {
   if (b.dataset.s === 'lasso') { tracing = true; tracePts = []; }
@@ -2215,127 +2239,156 @@ $('shapeSeg').querySelectorAll('button').forEach(b => b.onclick = () => {
   syncShapeUI(); drawEditor();
 });
 let snapOn = true;
-// pull a traced outline onto nearby edges in the photo, and onto the detected jawline around the chin
-function snapOutline(poly, Rview = 44, pull = .3) {
-  const k = baseScale * st.zoom, R = Math.max(4, Rview / k);
+/* ---------- smart cut-out: GrabCut-style graph cut, all on the device ---------- */
+function cutGeom(poly) {
   let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
   poly.forEach(p => { x0 = Math.min(x0, p.x); y0 = Math.min(y0, p.y); x1 = Math.max(x1, p.x); y1 = Math.max(y1, p.y); });
-  x0 = Math.max(0, Math.floor(x0 - R - 4)); y0 = Math.max(0, Math.floor(y0 - R - 4)); x1 = Math.min(src.width, Math.ceil(x1 + R + 4)); y1 = Math.min(src.height, Math.ceil(y1 + R + 4));
-  const bw = x1 - x0, bh = y1 - y0; if (bw < 8 || bh < 8) return poly;
-  const f = Math.min(1, Math.sqrt(500000 / (bw * bh))), gw = Math.max(4, Math.round(bw * f)), gh = Math.max(4, Math.round(bh * f));
-  const tc = document.createElement('canvas'); tc.width = gw; tc.height = gh; const tx = tc.getContext('2d', { willReadFrequently: true });
-  tx.drawImage(src, x0, y0, bw, bh, 0, 0, gw, gh);
-  const d = tx.getImageData(0, 0, gw, gh).data, gray = new Float32Array(gw * gh), bl = new Float32Array(gw * gh), G = new Float32Array(gw * gh);
-  for (let i = 0; i < gw * gh; i++) gray[i] = .3 * d[i * 4] + .59 * d[i * 4 + 1] + .11 * d[i * 4 + 2];
-  for (let y = 1; y < gh - 1; y++) for (let x = 1; x < gw - 1; x++) { let a = 0; for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) a += gray[(y + j) * gw + x + i]; bl[y * gw + x] = a / 9; }
-  for (let y = 2; y < gh - 2; y++) for (let x = 2; x < gw - 2; x++) {
-    const o = y * gw + x, gx = bl[o - gw + 1] + 2 * bl[o + 1] + bl[o + gw + 1] - bl[o - gw - 1] - 2 * bl[o - 1] - bl[o + gw - 1];
-    const gy = bl[o + gw - 1] + 2 * bl[o + gw] + bl[o + gw + 1] - bl[o - gw - 1] - 2 * bl[o - gw] - bl[o - gw + 1]; G[o] = Math.hypot(gx, gy);
-  }
-  const sample = []; for (let i = 0; i < G.length; i += 37) sample.push(G[i]); sample.sort((a, b) => a - b);
-  const top = sample[Math.floor(sample.length * .95)] || 1;
-  const g = (px, py) => { const x = Math.round((px - x0) * f), y = Math.round((py - y0) * f); return x < 2 || y < 2 || x >= gw - 2 || y >= gh - 2 ? 0 : Math.min(1, G[y * gw + x] / top); };
-  const n = poly.length, step = Math.max(.5, R / 24);
-  const jw0 = slots[active].jaw, E0 = slots[active].eyesImg;
-  let inCore = () => false;
-  if (jw0 && E0) {
-    const dn0 = q => (q.x - E0.x) * -Math.sin(jw0.ang) + (q.y - E0.y) * Math.cos(jw0.ang), ac0 = q => (q.x - E0.x) * Math.cos(jw0.ang) + (q.y - E0.y) * Math.sin(jw0.ang);
-    const cd = dn0(jw0.chin), half = Math.hypot(jw0.pts[16].x - jw0.pts[0].x, jw0.pts[16].y - jw0.pts[0].y) / 2;
-    inCore = q => { const u = ac0(q) / (half * .78), v = (dn0(q) - cd * .3) / (cd * .78); return u * u + v * v < 1; };
-  }
-  let out = poly.map((p, i) => {
-    const a = poly[(i - 1 + n) % n], b = poly[(i + 1) % n]; let nx = -(b.y - a.y), ny = b.x - a.x; const l = Math.hypot(nx, ny) || 1; nx /= l; ny /= l;
-    let best = 0, bs = -Infinity;
-    for (let t = -R; t <= R; t += step) { const qx = p.x + nx * t, qy = p.y + ny * t; if (inCore({ x: qx, y: qy })) continue; const sc = g(qx, qy) - pull * Math.abs(t) / R; if (sc > bs) { bs = sc; best = t; } }
-    return g(p.x + nx * best, p.y + ny * best) > .18 ? { x: p.x + nx * best, y: p.y + ny * best } : p;
-  });
-  // the detector's jawline: lock the lower face onto it
-  const jw = slots[active].jaw, E = slots[active].eyesImg;
-  if (jw && E) {
-    const dn = q => (q.x - E.x) * -Math.sin(jw.ang) + (q.y - E.y) * Math.cos(jw.ang), chinDown = dn(jw.chin);
-    const span = Math.hypot(jw.pts[16].x - jw.pts[0].x, jw.pts[16].y - jw.pts[0].y), Rj = span * .2;
-    const cx = (jw.pts[0].x + jw.pts[16].x + E.x * 2) / 4, cy = (jw.pts[0].y + jw.pts[16].y + E.y * 2) / 4;
-    out = out.map(q => {
-      if (dn(q) < chinDown * .45) return q;
-      let bd = Infinity, bp = null;
-      for (let i = 0; i < 16; i++) { const a = jw.pts[i], b = jw.pts[i + 1], vx = b.x - a.x, vy = b.y - a.y, tt = Math.max(0, Math.min(1, ((q.x - a.x) * vx + (q.y - a.y) * vy) / (vx * vx + vy * vy || 1)));
-        const px = a.x + vx * tt, py = a.y + vy * tt, dd = Math.hypot(q.x - px, q.y - py); if (dd < bd) { bd = dd; bp = { x: px, y: py }; } }
-      if (!bp || bd > Rj) return q;
-      const ox = bp.x - cx, oy = bp.y - cy, ol = Math.hypot(ox, oy) || 1, pad = span * .015;
-      return { x: bp.x + ox / ol * pad, y: bp.y + oy / ol * pad };
-    });
-  }
-  for (let pass = 0; pass < 3; pass++) out = out.map((p, i) => { const a = out[(i - 1 + n) % n], b = out[(i + 1) % n]; return { x: (a.x + 2 * p.x + b.x) / 4, y: (a.y + 2 * p.y + b.y) / 4 }; });
-  return out;
+  const mx = (x1 - x0) * .15, my = (y1 - y0) * .15;
+  x0 = Math.max(0, Math.floor(x0 - mx)); y0 = Math.max(0, Math.floor(y0 - my)); x1 = Math.min(src.width, Math.ceil(x1 + mx)); y1 = Math.min(src.height, Math.ceil(y1 + my));
+  const bw = Math.max(1, x1 - x0), bh = Math.max(1, y1 - y0), f = Math.min(1.5, 200 / Math.max(bw, bh));
+  return { x0, y0, bw, bh, f, gw: Math.max(8, Math.round(bw * f)), gh: Math.max(8, Math.round(bh * f)) };
 }
-// shrink a loose trace onto the subject: colors under the trace are "background"; walk each point inward until the color stops matching
-function shrinkToSubject(poly) {
-  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
-  poly.forEach(p => { x0 = Math.min(x0, p.x); y0 = Math.min(y0, p.y); x1 = Math.max(x1, p.x); y1 = Math.max(y1, p.y); });
-  x0 = Math.max(0, Math.floor(x0)); y0 = Math.max(0, Math.floor(y0)); x1 = Math.min(src.width, Math.ceil(x1)); y1 = Math.min(src.height, Math.ceil(y1));
-  const bw = x1 - x0, bh = y1 - y0; if (bw < 8 || bh < 8) return poly;
-  const f = Math.min(1, Math.sqrt(400000 / (bw * bh))), gw = Math.max(4, Math.round(bw * f)), gh = Math.max(4, Math.round(bh * f));
+function polyMaskCanvas(g, poly) {
+  const cv = document.createElement('canvas'); cv.width = g.gw; cv.height = g.gh; const x = cv.getContext('2d');
+  x.fillStyle = '#000'; x.beginPath(); poly.forEach((p, i) => { const u = (p.x - g.x0) * g.f, v = (p.y - g.y0) * g.f; i ? x.lineTo(u, v) : x.moveTo(u, v); }); x.closePath(); x.fill();
+  return cv;
+}
+// max-flow / min-cut (Dinic) on a flat edge list; returns which nodes stay on the source side
+function minCut(n, S, T, head, nxt, to, cap) {
+  const level = new Int32Array(n), it = new Int32Array(n), q = new Int32Array(n), stU = new Int32Array(n + 1), stE = new Int32Array(n + 1);
+  const bfs = () => { level.fill(-1); level[S] = 0; let h = 0, tl = 0; q[tl++] = S;
+    while (h < tl) { const u = q[h++]; for (let e = head[u]; e !== -1; e = nxt[e]) { const v = to[e]; if (cap[e] > 1e-7 && level[v] < 0) { level[v] = level[u] + 1; q[tl++] = v; } } }
+    return level[T] >= 0; };
+  while (bfs()) {
+    it.set(head);
+    for (;;) {
+      let top = 0, found = false; stU[0] = S;
+      while (top >= 0) {
+        const u = stU[top]; if (u === T) { found = true; break; }
+        let adv = false;
+        for (; it[u] !== -1; it[u] = nxt[it[u]]) { const e = it[u], v = to[e]; if (cap[e] > 1e-7 && level[v] === level[u] + 1) { stE[top] = e; stU[++top] = v; adv = true; break; } }
+        if (!adv) { level[u] = -1; top--; if (top >= 0) it[stU[top]] = nxt[it[stU[top]]]; }
+      }
+      if (!found) break;
+      let fl = Infinity; for (let i = 0; i < top; i++) fl = Math.min(fl, cap[stE[i]]);
+      for (let i = 0; i < top; i++) { cap[stE[i]] -= fl; cap[stE[i] ^ 1] += fl; }
+    }
+  }
+  return level; // >= 0: reachable from the source (foreground)
+}
+function grabCut(g, polyCv) {
+  const { gw, gh, f, x0, y0 } = g, N = gw * gh;
   const tc = document.createElement('canvas'); tc.width = gw; tc.height = gh; const tx = tc.getContext('2d', { willReadFrequently: true });
-  try { tx.filter = 'blur(1px)'; } catch (e) {}
-  tx.drawImage(src, x0, y0, bw, bh, 0, 0, gw, gh);
-  const d = tx.getImageData(0, 0, gw, gh).data;
-  const px = (X, Y) => { const x = Math.round((X - x0) * f), y = Math.round((Y - y0) * f); if (x < 0 || y < 0 || x >= gw || y >= gh) return null; const o = (y * gw + x) * 4; return d[o + 3] < 128 ? null : [d[o], d[o + 1], d[o + 2]]; };
-  const n = poly.length;
-  // background palette: colors on and just outside the trace
-  let cx = 0, cy = 0; poly.forEach(p => { cx += p.x / n; cy += p.y / n; });
+  tx.drawImage(src, x0, y0, g.bw, g.bh, 0, 0, gw, gh);
+  const d = tx.getImageData(0, 0, gw, gh).data, pm = polyCv.getContext('2d').getImageData(0, 0, gw, gh).data;
+  const col = new Float32Array(N * 3); for (let i = 0; i < N; i++) { col[i * 3] = d[i * 4]; col[i * 3 + 1] = d[i * 4 + 1]; col[i * 3 + 2] = d[i * 4 + 2]; }
+  const hard = new Uint8Array(N); // 1 = surely subject, 2 = surely background
+  for (let i = 0; i < N; i++) if (pm[i * 4 + 3] < 128 || d[i * 4 + 3] < 128) hard[i] = 2;
   const sl = slots[active], E = sl.eyesImg, jw = sl.jaw;
-  if (E) { cx = E.x; cy = E.y; }
-  const pal = [];
-  poly.forEach(p => { for (const t of [0, .04, .08]) { const c = px(p.x + (p.x - cx) * t, p.y + (p.y - cy) * t); if (c) pal.push(c); } });
-  if (pal.length < 10) return poly;
-  const near = (c, P) => { let m = Infinity; for (const q of P) { const a = c[0] - q[0], b = c[1] - q[1], e = c[2] - q[2], v = a * a + b * b + e * e; if (v < m) m = v; } return m; };
-  let inCore = () => false;
   if (jw && E) {
     const dn = q => (q.x - E.x) * -Math.sin(jw.ang) + (q.y - E.y) * Math.cos(jw.ang), ac = q => (q.x - E.x) * Math.cos(jw.ang) + (q.y - E.y) * Math.sin(jw.ang);
     const cd = dn(jw.chin), half = Math.hypot(jw.pts[16].x - jw.pts[0].x, jw.pts[16].y - jw.pts[0].y) / 2;
-    inCore = q => { const u = ac(q) / (half * .8), v = (dn(q) - cd * .3) / (cd * .8); return u * u + v * v < 1; };
-  }
-  const stepPx = 1 / f;
-  // subject palette: skin inside the face, plus hair just outside the face core along each ray
-  const sub = [];
-  if (jw && E) {
-    for (let i = 0; i < 60; i++) { const a = rnd(i + 400) * TAU, r = Math.sqrt(rnd(i + 401)) * .9, q = { x: cx + Math.cos(a) * 40 * r / f * f, y: cy + Math.sin(a) * 40 * r }; if (inCore(q)) { const c = px(q.x, q.y); if (c) sub.push(c); } }
-    poly.forEach(p => {
-      const dx = cx - p.x, dy = cy - p.y, L = Math.hypot(dx, dy) || 1;
-      for (let t = 0; t < L; t += stepPx * 2) { const q = { x: p.x + dx / L * t, y: p.y + dy / L * t }; if (inCore(q)) { for (const back of [4, 10]) { const c = px(q.x - dx / L * back / f, q.y - dy / L * back / f); if (c) sub.push(c); } break; } }
-    });
-  }
-  const T2 = (sub.length ? 46 : 30) ** 2;
-  const bgLike = c => { if (!c) return true; const db = near(c, pal); if (db > T2) return false; return !sub.length || db < .85 * near(c, sub); };
-  return poly.map(p => {
-    const dx = cx - p.x, dy = cy - p.y, L = Math.hypot(dx, dy) || 1, ux = dx / L, uy = dy / L, maxT = L * .8;
-    let run = 0, hit = null;
-    for (let t = 0; t < maxT; t += stepPx) {
-      const q = { x: p.x + ux * t, y: p.y + uy * t };
-      if (inCore(q)) { hit = hit || { x: q.x, y: q.y }; break; }
-      if (!bgLike(px(q.x, q.y))) { if (++run === 1) hit = q; if (run >= 3) break; } else { run = 0; hit = null; }
+    for (let v = 0; v < gh; v++) for (let u = 0; u < gw; u++) {
+      const i = v * gw + u; if (hard[i] === 2) continue; const q = { x: x0 + (u + .5) / f, y: y0 + (v + .5) / f };
+      const a = ac(q) / (half * .72), b = (dn(q) - cd * .25) / (cd * .72);
+      if (a * a + b * b < 1) hard[i] = 1;
+      else if (dn(q) > cd * 1.08 && Math.abs(ac(q)) < half * 1.05) hard[i] = 2; // neck / collar under the chin
     }
-    return hit || p;
-  });
+  } else {
+    let cx = 0, cy = 0, c = 0; for (let i = 0; i < N; i++) if (hard[i] !== 2) { cx += i % gw; cy += Math.floor(i / gw); c++; }
+    if (!c) return null; cx /= c; cy /= c; const rx = gw * .14, ry = gh * .16;
+    for (let v = 0; v < gh; v++) for (let u = 0; u < gw; u++) { const a = (u - cx) / rx, b = (v - cy) / ry; if (a * a + b * b < 1 && hard[v * gw + u] !== 2) hard[v * gw + u] = 1; }
+  }
+  // color models: a few clusters each for subject and background
+  const fit = idx => {
+    if (idx.length < 30) return null;
+    const K = 5, smp = idx.length > 5000 ? idx.filter((_, i) => i % Math.ceil(idx.length / 5000) === 0) : idx;
+    const lum = i => col[i * 3] * .3 + col[i * 3 + 1] * .59 + col[i * 3 + 2] * .11, srt = [...smp].sort((a, b) => lum(a) - lum(b));
+    let mu = Array.from({ length: K }, (_, k) => { const i = srt[Math.floor((k + .5) / K * srt.length)]; return [col[i * 3], col[i * 3 + 1], col[i * 3 + 2]]; });
+    let asg = new Uint8Array(smp.length);
+    for (let rep = 0; rep < 6; rep++) {
+      const acc = mu.map(() => [0, 0, 0, 0]);
+      smp.forEach((i, j) => { let bk = 0, bd = Infinity; for (let k = 0; k < K; k++) { const a = col[i * 3] - mu[k][0], b = col[i * 3 + 1] - mu[k][1], c = col[i * 3 + 2] - mu[k][2], dd = a * a + b * b + c * c; if (dd < bd) { bd = dd; bk = k; } } asg[j] = bk; const A = acc[bk]; A[0] += col[i * 3]; A[1] += col[i * 3 + 1]; A[2] += col[i * 3 + 2]; A[3]++; });
+      mu = mu.map((m, k) => acc[k][3] ? [acc[k][0] / acc[k][3], acc[k][1] / acc[k][3], acc[k][2] / acc[k][3]] : m);
+    }
+    const vr = mu.map(() => [0, 0]); smp.forEach((i, j) => { const k = asg[j], a = col[i * 3] - mu[k][0], b = col[i * 3 + 1] - mu[k][1], c = col[i * 3 + 2] - mu[k][2]; vr[k][0] += (a * a + b * b + c * c) / 3; vr[k][1]++; });
+    return mu.map((m, k) => ({ m, v: Math.max(25, vr[k][1] ? vr[k][0] / vr[k][1] : 400), w: Math.max(.02, vr[k][1] / smp.length) }));
+  };
+  const cost = (i, M) => { let best = Infinity; for (const g of M) { const a = col[i * 3] - g.m[0], b = col[i * 3 + 1] - g.m[1], c = col[i * 3 + 2] - g.m[2]; const v = (a * a + b * b + c * c) / (2 * g.v) + 1.5 * Math.log(g.v) - Math.log(g.w); if (v < best) best = v; } return best; };
+  // smoothness: neighbors with similar colors want the same label
+  let sum = 0, cnt = 0; const dif = (i, j) => { const a = col[i * 3] - col[j * 3], b = col[i * 3 + 1] - col[j * 3 + 1], c = col[i * 3 + 2] - col[j * 3 + 2]; return a * a + b * b + c * c; };
+  for (let v = 0; v < gh; v++) for (let u = 0; u < gw; u++) { const i = v * gw + u; if (u < gw - 1) { sum += dif(i, i + 1); cnt++; } if (v < gh - 1) { sum += dif(i, i + gw); cnt++; } }
+  const beta = 1 / (2 * Math.max(1, sum / cnt)), GAM = 50;
+  const wR = new Float32Array(N), wD = new Float32Array(N);
+  for (let v = 0; v < gh; v++) for (let u = 0; u < gw; u++) { const i = v * gw + u; if (u < gw - 1) wR[i] = GAM * Math.exp(-beta * dif(i, i + 1)); if (v < gh - 1) wD[i] = GAM * Math.exp(-beta * dif(i, i + gw)); }
+  let lab = new Uint8Array(N); for (let i = 0; i < N; i++) lab[i] = hard[i] === 2 ? 0 : 1;
+  for (let iter = 0; iter < 3; iter++) {
+    const fg = [], bg = []; for (let i = 0; i < N; i++) (lab[i] ? fg : bg).push(i);
+    const FM = fit(fg), BM = fit(bg); if (!FM || !BM) break;
+    const n = N + 2, S = N, T = N + 1, M = 8 * N + 8, head = new Int32Array(n).fill(-1), nxt = new Int32Array(M), to = new Int32Array(M), cap = new Float64Array(M); let ec = 0;
+    const add = (a, b, c1, c2) => { to[ec] = b; cap[ec] = c1; nxt[ec] = head[a]; head[a] = ec++; to[ec] = a; cap[ec] = c2; nxt[ec] = head[b]; head[b] = ec++; };
+    for (let i = 0; i < N; i++) {
+      let cs, ct;
+      if (hard[i] === 1) { cs = 1e9; ct = 0; } else if (hard[i] === 2) { cs = 0; ct = 1e9; } else { cs = cost(i, BM); ct = cost(i, FM); const m = Math.min(cs, ct); cs -= m; ct -= m; }
+      if (cs > 0) add(S, i, cs, 0); if (ct > 0) add(i, T, ct, 0);
+      const u = i % gw; if (u < gw - 1) add(i, i + 1, wR[i], wR[i]); if (i + gw < N) add(i, i + gw, wD[i], wD[i]);
+    }
+    const lv = minCut(n, S, T, head, nxt, to, cap);
+    for (let i = 0; i < N; i++) lab[i] = lv[i] >= 0 ? 1 : 0;
+  }
+  // keep only the blob attached to the face, and fill any holes in it
+  const keep = new Uint8Array(N), q = new Int32Array(N); let h = 0, tl = 0;
+  for (let i = 0; i < N; i++) if (hard[i] === 1 && lab[i]) { keep[i] = 1; q[tl++] = i; }
+  while (h < tl) { const i = q[h++], u = i % gw; for (const j of [u > 0 ? i - 1 : -1, u < gw - 1 ? i + 1 : -1, i - gw, i + gw]) if (j >= 0 && j < N && lab[j] && !keep[j]) { keep[j] = 1; q[tl++] = j; } }
+  const out = new Uint8Array(N); h = 0; tl = 0;
+  for (let i = 0; i < N; i++) { const u = i % gw, v = (i / gw) | 0; if ((u === 0 || v === 0 || u === gw - 1 || v === gh - 1) && !keep[i]) { out[i] = 1; q[tl++] = i; } }
+  while (h < tl) { const i = q[h++], u = i % gw; for (const j of [u > 0 ? i - 1 : -1, u < gw - 1 ? i + 1 : -1, i - gw, i + gw]) if (j >= 0 && j < N && !keep[j] && !out[j]) { out[j] = 1; q[tl++] = j; } }
+  let count = 0; const cv = document.createElement('canvas'); cv.width = gw; cv.height = gh; const cx = cv.getContext('2d'), id = cx.createImageData(gw, gh);
+  for (let i = 0; i < N; i++) if (!out[i]) { id.data[i * 4 + 3] = 255; count++; }
+  if (count < N * .03) return null;
+  cx.putImageData(id, 0, 0); return cv;
 }
-function applyLasso() {
+function buildMask() {
   const sl = slots[active]; if (!sl.lassoRaw) return;
-  sl.lasso = snapOn ? snapOutline(shrinkToSubject(sl.lassoRaw), 10, .5) : sl.lassoRaw; // shrink onto the subject, then settle on the edge
+  const g = cutGeom(sl.lassoRaw), poly = polyMaskCanvas(g, sl.lassoRaw);
+  let cv = poly; if (snapOn) { try { cv = grabCut(g, poly) || poly; } catch (e) { cv = poly; } }
+  sl.mask = { cv, x0: g.x0, y0: g.y0, f: g.f }; sl.undo = [];
+}
+function drawMaskTo(c, cx, cy, m) {
+  c.save(); c.translate(cx + st.ox, cy + st.oy); c.rotate(st.rot); const k = baseScale * st.zoom; c.scale(k, k); c.translate(-src.width / 2, -src.height / 2);
+  c.imageSmoothingEnabled = true; c.drawImage(m.cv, m.x0, m.y0, m.cv.width / m.f, m.cv.height / m.f); c.restore();
+}
+function maskPoints(m) {
+  const d = m.cv.getContext('2d').getImageData(0, 0, m.cv.width, m.cv.height).data, out = [];
+  for (let v = 0; v < m.cv.height; v += 2) for (let u = 0; u < m.cv.width; u += 2) if (d[(v * m.cv.width + u) * 4 + 3] > 127) out.push({ x: m.x0 + u / m.f, y: m.y0 + v / m.f });
+  return out;
+}
+/* ---------- touch-up brush on the cut-out ---------- */
+let brushMode = 'move', brushAt = null;
+function paintMask(a, b) {
+  const sl = slots[active], m = sl.mask; if (!m) return;
+  const A = viewToImg(a), B = viewToImg(b), x = m.cv.getContext('2d'), r = 18 / (baseScale * st.zoom) * m.f;
+  x.save(); x.globalCompositeOperation = brushMode === 'keep' ? 'source-over' : 'destination-out'; x.strokeStyle = x.fillStyle = '#000'; x.lineWidth = r * 2; x.lineCap = 'round';
+  x.beginPath(); x.moveTo((A.x - m.x0) * m.f, (A.y - m.y0) * m.f); x.lineTo((B.x - m.x0) * m.f, (B.y - m.y0) * m.f); x.stroke(); x.restore();
 }
 function finishTrace() {
   const pts2 = tracePts; tracePts = [];
   let area = 0; for (let i = 0; i < pts2.length; i++) { const a = pts2[i], b = pts2[(i + 1) % pts2.length]; area += a.x * b.y - b.x * a.y; }
   if (pts2.length < 12 || Math.abs(area) / 2 < 6000) { setDetect('Trace all the way around the head, then lift your finger.'); drawEditor(); return; }
   const step = Math.max(1, Math.floor(pts2.length / 220));
-  slots[active].lassoRaw = pts2.filter((_, i) => i % step === 0).map(viewToImg);
-  slots[active].shape = 'lasso'; tracing = false; applyLasso();
-  fitTraced();
-  setDetect(snapOn ? '✂️ Head traced and snapped to the edges! Drag or pinch to adjust.' : '✂️ Head traced! Drag or pinch to adjust.'); syncShapeUI();
+  const sl = slots[active];
+  sl.lassoRaw = pts2.filter((_, i) => i % step === 0).map(viewToImg); sl.lasso = sl.lassoRaw; sl.mask = null;
+  sl.shape = 'lasso'; tracing = false; brushMode = 'move';
+  setDetect(snapOn ? '✂️ Cutting out the head…' : '✂️ Head traced!'); syncShapeUI(); drawEditor();
+  setTimeout(() => {
+    buildMask(); fitTraced();
+    setDetect(snapOn ? '✂️ Cut out! Fix any bits with ➕ Keep / ➖ Erase.' : '✂️ Head traced! Drag or pinch to adjust.'); syncShapeUI();
+  }, 40);
 }
 // zoom and center so the traced head fills the frame, then put the eye line on the eyes
 function fitTraced() {
   const sl = slots[active], cr = Math.cos(st.rot), sr = Math.sin(st.rot);
-  const rp = sl.lasso.map(p => { const x = p.x - src.width / 2, y = p.y - src.height / 2; return { x: x * cr - y * sr, y: x * sr + y * cr }; });
+  const rp = (sl.mask ? maskPoints(sl.mask) : sl.lasso).map(p => { const x = p.x - src.width / 2, y = p.y - src.height / 2; return { x: x * cr - y * sr, y: x * sr + y * cr }; });
   const xs = rp.map(p => p.x), ys = rp.map(p => p.y), w = Math.max(...xs) - Math.min(...xs), h = Math.max(...ys) - Math.min(...ys);
   st.zoom = clampZoom(Math.min(380 / h, 360 / w) / baseScale);
   const k = baseScale * st.zoom;
@@ -2460,7 +2513,7 @@ function useFace(f) {
   im.onload = () => {
     const c = document.createElement('canvas'); c.width = c.height = 600;
     c.getContext('2d').drawImage(im, 100, 100, 400, 400);
-    src = c; slots[active].src = c; slots[active].has = true; slots[active].shape = 'saved'; slots[active].lasso = null; tracing = false; syncShapeUI(); slots[active].name = f.name || ''; $('fname').value = slots[active].name; st.eye = f.eye; activeFace = f.id; resetView(); renderFaces();
+    src = c; slots[active].src = c; slots[active].has = true; slots[active].shape = 'saved'; slots[active].lasso = null; slots[active].mask = null; tracing = false; brushMode = 'move'; syncShapeUI(); slots[active].name = f.name || ''; $('fname').value = slots[active].name; st.eye = f.eye; activeFace = f.id; resetView(); renderFaces();
     $('saveNote').textContent = ''; setDetect('');
     showPage('make');
   };
