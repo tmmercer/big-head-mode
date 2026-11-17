@@ -58,6 +58,7 @@ header{position:relative}
 .btn.block{width:100%}
 .btn:disabled{opacity:.6;cursor:progress}
 .editor-box{width:100%;max-width:340px;margin:16px auto 8px;aspect-ratio:1}
+#shapeSeg{margin:12px 0 0}
 #editor{width:100%;height:100%;border-radius:16px;border:3px solid var(--ink);touch-action:none;cursor:grab;background:#2a2333;display:block}
 #editor:active{cursor:grabbing}
 .hint{font-size:14px;opacity:.7;text-align:center;margin:6px 0 12px}
@@ -159,9 +160,10 @@ footer{text-align:center;margin-top:30px;font-size:14px;opacity:.7}
         <div class="label">Saved faces <span class="small">· tap one to use it</span></div>
         <div class="faces" id="faces"></div>
       </div>
+      <div class="seg" id="shapeSeg" role="group" aria-label="Cutout shape"><button type="button" data-s="oval" aria-pressed="true">⬭ Oval</button><button type="button" data-s="lasso" aria-pressed="false">✂️ Trace head</button></div>
       <div class="editor-box"><canvas id="editor" width="600" height="600" aria-label="Drag to position the face inside the oval"></canvas></div>
       <p class="detect" id="detectNote" aria-live="polite"></p>
-      <p class="hint">Drag to move · pinch or slide to zoom · fit the face in the oval</p>
+      <p class="hint" id="edHint">Drag to move · pinch or slide to zoom · fit the face in the oval</p>
       <div class="slider"><label for="zoom">Zoom</label><input id="zoom" type="range" min="-1.5" max="3.2" step="0.01" value="0"></div>
       <div class="slider"><label for="tilt">Tilt</label><input id="tilt" type="range" min="-45" max="45" step="1" value="0"></div>
       <div class="slider"><label for="eye">Eye line</label><input id="eye" type="range" min="0.2" max="0.7" step="0.01" value="0.42"></div>
@@ -327,10 +329,17 @@ function drawEditor() {
   const c = ectx;
   c.fillStyle = '#2a2333'; c.fillRect(0, 0, 600, 600);
   c.save(); drawSrc(c, 300, 300); c.restore();
-  c.save(); c.fillStyle = 'rgba(26,16,36,.62)'; c.beginPath(); c.rect(0, 0, 600, 600);
-  c.ellipse(300, 300, 140, 200, 0, 0, TAU); c.fill('evenodd'); c.restore();
-  c.lineWidth = 5; c.setLineDash([18, 12]); c.strokeStyle = '#ffd23f';
-  c.beginPath(); c.ellipse(300, 300, 140, 200, 0, 0, TAU); c.stroke();
+  const shape = slots[active].shape;
+  if (tracing) {
+    c.fillStyle = 'rgba(26,16,36,.25)'; c.fillRect(0, 0, 600, 600);
+    if (tracePts.length > 1) { c.lineJoin = 'round'; c.lineCap = 'round'; c.setLineDash([]);
+      c.strokeStyle = 'rgba(26,16,36,.8)'; c.lineWidth = 10; c.beginPath(); tracePts.forEach((p, i) => i ? c.lineTo(p.x, p.y) : c.moveTo(p.x, p.y)); c.stroke();
+      c.strokeStyle = '#ff4f8b'; c.lineWidth = 5; c.stroke();
+      const a = tracePts[0]; c.fillStyle = '#ffd23f'; c.beginPath(); c.arc(a.x, a.y, 9, 0, TAU); c.fill(); }
+  } else if (shape !== 'saved') {
+    c.save(); c.fillStyle = 'rgba(26,16,36,.62)'; c.beginPath(); c.rect(0, 0, 600, 600); shapePath(c, 300, 300); c.fill('evenodd'); c.restore();
+    c.lineWidth = 5; c.setLineDash([18, 12]); c.strokeStyle = '#ffd23f'; c.beginPath(); shapePath(c, 300, 300); c.stroke();
+  }
   const ey = 100 + st.eye * 400;
   c.setLineDash([10, 8]); c.lineWidth = 3; c.strokeStyle = '#2ec4b6';
   c.beginPath(); c.moveTo(140, ey); c.lineTo(460, ey); c.stroke(); c.setLineDash([]);
@@ -345,6 +354,22 @@ const slots = [
   { src: makePlaceholder(1), st: { ox: 0, oy: 0, zoom: 1, rot: 0, eye: 0.42 }, face: face2, name: '', skin: '#c68a5e', has: false },
 ];
 let active = 0, curEye = 0.42;
+slots.forEach(sl => { sl.shape = 'oval'; sl.lasso = null; sl.eyesImg = null; });
+let tracing = false, tracePts = [];
+// map a point on the photo to the editor (cx,cy = 300,300) or the face canvas (200,200), and back
+function imgToView(p, cx, cy) {
+  const k = baseScale * st.zoom, x = (p.x - src.width / 2) * k, y = (p.y - src.height / 2) * k, cr = Math.cos(st.rot), sr = Math.sin(st.rot);
+  return { x: cx + st.ox + x * cr - y * sr, y: cy + st.oy + x * sr + y * cr };
+}
+function viewToImg(q) {
+  const k = baseScale * st.zoom, dx = q.x - 300 - st.ox, dy = q.y - 300 - st.oy, cr = Math.cos(-st.rot), sr = Math.sin(-st.rot);
+  return { x: (dx * cr - dy * sr) / k + src.width / 2, y: (dx * sr + dy * cr) / k + src.height / 2 };
+}
+function shapePath(c, cx, cy) {
+  const sl = slots[active];
+  if (sl.shape === 'lasso' && sl.lasso) { sl.lasso.forEach((p, i) => { const v = imgToView(p, cx, cy); i ? c.lineTo(v.x, v.y) : c.moveTo(v.x, v.y); }); c.closePath(); }
+  else c.ellipse(cx, cy, 140, 200, 0, 0, TAU);
+}
 const eyeOf = img => (slots.find(sl => sl.face === img) || slots[0]).st.eye;
 const E1 = () => slots[0].st.eye;
 const N1 = () => slots[0].name.trim(), N2 = () => slots[1].name.trim();
@@ -353,6 +378,15 @@ function updateFace() {
   const c = slots[active].face.getContext('2d');
   c.clearRect(0, 0, 400, 400);
   c.save(); drawSrc(c, 200, 200); c.restore();
+  const shape = slots[active].shape;
+  if (shape === 'saved') { sampleSkin(); return; } // a saved face already carries its cutout
+  if (shape === 'lasso' && slots[active].lasso) {
+    const m = document.createElement('canvas'); m.width = m.height = 400; const mc = m.getContext('2d');
+    try { mc.filter = 'blur(1.5px)'; } catch (e) {}
+    mc.fillStyle = '#000'; mc.beginPath(); shapePath(mc, 200, 200); mc.fill();
+    c.save(); c.globalCompositeOperation = 'destination-in'; c.drawImage(m, 0, 0); c.restore();
+    sampleSkin(); return;
+  }
   c.save(); c.globalCompositeOperation = 'destination-in';
   c.translate(200, 200); c.scale(1, 200 / 140);
   const g = c.createRadialGradient(0, 0, 0, 0, 0, 140);
@@ -619,7 +653,7 @@ function drawCharacter(c, x, y, s, P) {
 /* ---------- editor interaction ---------- */
 const zoomIn = $('zoom'), tiltIn = $('tilt'), eyeIn = $('eye');
 const syncSliders = () => { zoomIn.value = Math.log2(st.zoom); tiltIn.value = Math.round(st.rot * 180 / Math.PI); eyeIn.value = st.eye; };
-zoomIn.oninput = () => { st.zoom = Math.pow(2, +zoomIn.value); refresh(); };
+zoomIn.oninput = () => { const nz = Math.pow(2, +zoomIn.value), r = nz / st.zoom; st.ox *= r; st.oy *= r; st.zoom = nz; refresh(); }; // zoom around the frame's center
 tiltIn.oninput = () => { st.rot = +tiltIn.value * Math.PI / 180; refresh(); };
 eyeIn.oninput = () => { st.eye = +eyeIn.value; refresh(); };
 function resetView() { fitBase(); st.ox = st.oy = 0; st.zoom = 1; st.rot = 0; syncSliders(); refresh(); }
@@ -627,8 +661,13 @@ $('reset').onclick = resetView;
 
 const pts = new Map();
 const clampZoom = z => Math.min(Math.pow(2, 3.2), Math.max(Math.pow(2, -1.5), z));
-ed.addEventListener('pointerdown', e => { ed.setPointerCapture(e.pointerId); pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); });
+const edPt = e => { const r = ed.getBoundingClientRect(); return { x: (e.clientX - r.left) * 600 / r.width, y: (e.clientY - r.top) * 600 / r.height }; };
+ed.addEventListener('pointerdown', e => {
+  if (tracing) { e.preventDefault(); try { ed.setPointerCapture(e.pointerId); } catch (err) {} tracePts = [edPt(e)]; drawEditor(); return; }
+  ed.setPointerCapture(e.pointerId); pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+});
 ed.addEventListener('pointermove', e => {
+  if (tracing) { if (!tracePts.length) return; const q = edPt(e), l = tracePts[tracePts.length - 1]; if (Math.hypot(q.x - l.x, q.y - l.y) > 4) { tracePts.push(q); drawEditor(); } return; }
   if (!pts.has(e.pointerId)) return;
   const prev = pts.get(e.pointerId), k = ed.width / ed.getBoundingClientRect().width;
   if (pts.size === 1) {
@@ -641,7 +680,7 @@ ed.addEventListener('pointermove', e => {
   pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
   syncSliders(); refresh();
 });
-['pointerup', 'pointercancel', 'lostpointercapture'].forEach(n => ed.addEventListener(n, e => pts.delete(e.pointerId)));
+['pointerup', 'pointercancel', 'lostpointercapture'].forEach(n => ed.addEventListener(n, e => { if (tracing && tracePts.length) { finishTrace(); return; } pts.delete(e.pointerId); }));
 ed.addEventListener('wheel', e => {
   e.preventDefault(); const nz = clampZoom(st.zoom * Math.exp(-e.deltaY * 0.0015)), r = nz / st.zoom;
   st.ox *= r; st.oy *= r; st.zoom = nz; syncSliders(); refresh();
@@ -656,7 +695,7 @@ $('file').addEventListener('change', e => {
     const c = document.createElement('canvas');
     c.width = Math.round(im.naturalWidth * s); c.height = Math.round(im.naturalHeight * s);
     c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
-    src = c; slots[active].src = c; slots[active].has = true; URL.revokeObjectURL(url); resetView(); activeFace = null; renderFaces(); $('saveNote').textContent = 'Check the fit, then tap 💾 Save this face to keep it.';
+    src = c; slots[active].src = c; slots[active].has = true; slots[active].shape = 'oval'; slots[active].lasso = null; slots[active].eyesImg = null; tracing = false; syncShapeUI(); URL.revokeObjectURL(url); resetView(); activeFace = null; renderFaces(); $('saveNote').textContent = 'Check the fit, then tap 💾 Save this face to keep it.';
     autoFind(c);
     if (active === 1 && cur.pack !== 'duo' && !['teamsdm', 'clones', 'cameraon'].includes(cur.id)) { const b = document.querySelector('#bits5 .bit'); if (b) { b.click(); openPackOf(b); } }
   };
@@ -2147,6 +2186,7 @@ function applyDetection(d) {
   const P = d.p, avg = ids => ids.reduce((a, i) => ({ x: a.x + P[i].x / ids.length, y: a.y + P[i].y / ids.length }), { x: 0, y: 0 });
   const L = avg([36, 37, 38, 39, 40, 41]), R = avg([42, 43, 44, 45, 46, 47]), chin = P[8];
   const ang = Math.atan2(R.y - L.y, R.x - L.x), E = { x: (L.x + R.x) / 2, y: (L.y + R.y) / 2 };
+  slots[active].eyesImg = E;
   const down = (chin.x - E.x) * -Math.sin(ang) + (chin.y - E.y) * Math.cos(ang);
   if (down < 4) return;
   const eyeY = 100 + st.eye * 400, S = (490 - eyeY) / down;
@@ -2155,6 +2195,41 @@ function applyDetection(d) {
   const s = baseScale * st.zoom, vx = (E.x - src.width / 2) * s, vy = (E.y - src.height / 2) * s;
   const cr = Math.cos(st.rot), sr = Math.sin(st.rot);
   st.ox = -(vx * cr - vy * sr); st.oy = (eyeY - 300) - (vx * sr + vy * cr);
+  syncSliders(); refresh();
+}
+
+/* ---------- cutout shape: oval or a traced head ---------- */
+const HINTS = { oval: 'Drag to move · pinch or slide to zoom · fit the face in the oval', lasso: 'Drag or pinch to adjust · tap ✂️ Trace head again to redo the outline', saved: 'Saved face · tap ✂️ Trace head on a new photo to cut out a different shape', trace: '✏️ Trace around their head with one finger (include the hair), then lift' };
+function syncShapeUI() {
+  const sh = tracing ? 'lasso' : slots[active].shape;
+  $('shapeSeg').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.s === sh));
+  $('edHint').textContent = HINTS[tracing ? 'trace' : slots[active].shape];
+  ed.style.cursor = tracing ? 'crosshair' : '';
+}
+$('shapeSeg').querySelectorAll('button').forEach(b => b.onclick = () => {
+  if (b.dataset.s === 'lasso') { tracing = true; tracePts = []; }
+  else { tracing = false; slots[active].shape = 'oval'; refresh(); }
+  syncShapeUI(); drawEditor();
+});
+function finishTrace() {
+  const pts2 = tracePts; tracePts = [];
+  let area = 0; for (let i = 0; i < pts2.length; i++) { const a = pts2[i], b = pts2[(i + 1) % pts2.length]; area += a.x * b.y - b.x * a.y; }
+  if (pts2.length < 12 || Math.abs(area) / 2 < 6000) { setDetect('Trace all the way around the head, then lift your finger.'); drawEditor(); return; }
+  const step = Math.max(1, Math.floor(pts2.length / 220));
+  slots[active].lasso = pts2.filter((_, i) => i % step === 0).map(viewToImg);
+  slots[active].shape = 'lasso'; tracing = false;
+  fitTraced();
+  setDetect('✂️ Head traced! Drag or pinch to adjust.'); syncShapeUI();
+}
+// zoom and center so the traced head fills the frame, then put the eye line on the eyes
+function fitTraced() {
+  const sl = slots[active], cr = Math.cos(st.rot), sr = Math.sin(st.rot);
+  const rp = sl.lasso.map(p => { const x = p.x - src.width / 2, y = p.y - src.height / 2; return { x: x * cr - y * sr, y: x * sr + y * cr }; });
+  const xs = rp.map(p => p.x), ys = rp.map(p => p.y), w = Math.max(...xs) - Math.min(...xs), h = Math.max(...ys) - Math.min(...ys);
+  st.zoom = clampZoom(Math.min(380 / h, 360 / w) / baseScale);
+  const k = baseScale * st.zoom;
+  st.ox = -k * (Math.max(...xs) + Math.min(...xs)) / 2; st.oy = -k * (Math.max(...ys) + Math.min(...ys)) / 2;
+  if (sl.eyesImg) { const v = imgToView(sl.eyesImg, 300, 300); st.eye = Math.max(.2, Math.min(.7, (v.y - 100) / 400)); }
   syncSliders(); refresh();
 }
 
@@ -2274,7 +2349,7 @@ function useFace(f) {
   im.onload = () => {
     const c = document.createElement('canvas'); c.width = c.height = 600;
     c.getContext('2d').drawImage(im, 100, 100, 400, 400);
-    src = c; slots[active].src = c; slots[active].has = true; slots[active].name = f.name || ''; $('fname').value = slots[active].name; st.eye = f.eye; activeFace = f.id; resetView(); renderFaces();
+    src = c; slots[active].src = c; slots[active].has = true; slots[active].shape = 'saved'; slots[active].lasso = null; tracing = false; syncShapeUI(); slots[active].name = f.name || ''; $('fname').value = slots[active].name; st.eye = f.eye; activeFace = f.id; resetView(); renderFaces();
     $('saveNote').textContent = ''; setDetect('');
     showPage('make');
   };
@@ -2568,7 +2643,7 @@ const nameIn = $('fname');
 function setActive(i) {
   if (i === active) return;
   slots[active].src = src; active = i; src = slots[i].src; st = slots[i].st;
-  fitBase(); syncSliders(); drawEditor();
+  tracing = false; fitBase(); syncSliders(); drawEditor(); syncShapeUI();
   nameIn.value = slots[i].name; detections = []; $('nextFace').hidden = true;
   setDetect(i === 1 && !slots[1].has ? 'Add a second face for the 👥 Duo pack.' : '');
   activeFace = null; renderFaces(); $('saveNote').textContent = '';
