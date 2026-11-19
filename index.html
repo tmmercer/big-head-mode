@@ -214,7 +214,10 @@ footer{text-align:center;margin-top:30px;font-size:14px;opacity:.7}
             <div class="slider" id="gifSizeRow" hidden style="margin-top:10px"><label for="gifSize">Face size</label><input id="gifSize" type="range" min="0.6" max="2" step="0.01" value="1.25"></div>
             <div id="gifMouthRow" hidden><div class="label">Mouth <span class="small">· follows the person talking in the GIF</span></div>
             <div class="seg seg3" id="gifMouth" role="group" aria-label="Mouth"><button type="button" data-m="off" aria-pressed="true">Off</button><button type="button" data-m="flap" aria-pressed="false">🗣️ Jaw flap</button><button type="button" data-m="lips" aria-pressed="false">👄 Their lips</button></div></div>
-            <div class="row" style="justify-content:flex-start"><button type="button" class="btn ghost" id="gifNext" hidden>👥 Switch person</button></div>
+            <div id="gifFacesRow" hidden><div class="label">Faces</div>
+            <div class="seg" id="gifFaces" role="group" aria-label="How many faces"><button type="button" data-n="1" aria-pressed="true">👤 One face</button><button type="button" data-n="2" aria-pressed="false">👥 Two faces</button></div>
+            <p class="small" id="gifTwoNote" hidden style="margin:6px 0 0"></p></div>
+            <div class="row" style="justify-content:flex-start"><button type="button" class="btn ghost" id="gifNext" hidden>👥 Switch person</button><button type="button" class="btn ghost" id="gifSwap" hidden>⇄ Swap faces</button></div>
             <p class="small" style="margin:8px 0 0">Only use GIFs you have the right to share.</p>
           </div>
           <div class="chatedit" id="propEdit" hidden>
@@ -1369,10 +1372,15 @@ const TEMPLATES = [
   c.drawImage(ug.frames[i].cv, 0, 0, CW, CH);
   const eyeY = E1() * 400, ds = Math.max(80, 390 - eyeY);
   if (ug.track.length) {
-    const tr = ug.track[i], s = tr.d / ds * ug.size, off = (200 - eyeY) * s, fx = tr.x - Math.sin(tr.ang) * off, fy = tr.y + Math.cos(tr.ang) * off;
-    if (ug.mouth === 'flap') drawFaceFlap(c, fx, fy, 400 * s, tr.ang, Math.max(0, Math.min(.45, (tr.open - ug.openBase) * 2.4)) * ds);
-    else drawFace(c, fx, fy, 400 * s, tr.ang);
-    if (ug.mouth === 'lips' && tr.poly) pasteLips(c, ug.frames[i].cv, tr);
+    const place = (tr, img, base) => {
+      const ey = eyeOf(img) * 400, dd = Math.max(80, 390 - ey), s = tr.d / dd * ug.size, off = (200 - ey) * s, fx = tr.x - Math.sin(tr.ang) * off, fy = tr.y + Math.cos(tr.ang) * off;
+      if (ug.mouth === 'flap') drawFaceFlap(c, fx, fy, 400 * s, tr.ang, Math.max(0, Math.min(.45, (tr.open - base) * 2.4)) * dd, img);
+      else drawFace(c, fx, fy, 400 * s, tr.ang, 1, 1, img);
+      if (ug.mouth === 'lips' && tr.poly) pasteLips(c, ug.frames[i].cv, tr);
+    };
+    const two = ug.two && ug.track2.length, [imA, imB] = ug.swap && two ? [F2(), face] : [face, F2()];
+    place(ug.track[i], imA, ug.openBase);
+    if (two) place(ug.track2[i], imB, ug.openBase2 || 0);
   } else if (ug.manual) {
     drawFace(c, ug.manual.x, ug.manual.y, CH * .5 * ug.size, 0);
   }
@@ -2566,7 +2574,7 @@ function pasteLips(c, frame, tr) {
   x.globalCompositeOperation = 'source-in'; x.drawImage(frame, 0, 0, CW, CH);
   c.drawImage(ugLipCv, 0, 0);
 }
-const ug = { mouth: 'off', openBase: 0, frames: [], dets: [], track: [], target: 0, people: 0, size: 1.25, manual: null, ver: 0, busy: false };
+const ug = { two: false, swap: false, track2: [], openBase2: 0, mouth: 'off', openBase: 0, frames: [], dets: [], track: [], target: 0, people: 0, size: 1.25, manual: null, ver: 0, busy: false };
 function ugFaceInfo(r) {
   const P = r.landmarks.positions, avg = ids => ids.reduce((a, i) => ({ x: a.x + P[i].x / ids.length, y: a.y + P[i].y / ids.length }), { x: 0, y: 0 });
   const L = avg([36, 37, 38, 39, 40, 41]), R = avg([42, 43, 44, 45, 46, 47]), E = { x: (L.x + R.x) / 2, y: (L.y + R.y) / 2 }, ang = Math.atan2(R.y - L.y, R.x - L.x), ch = P[8];
@@ -2576,12 +2584,17 @@ function ugFaceInfo(r) {
 }
 const ugScale = (q, k) => ({ x: q.x * k, y: q.y * k, d: q.d * k, ang: q.ang, open: q.open, mx: q.mx * k, my: q.my * k, poly: q.poly.map(p => ({ x: p.x * k, y: p.y * k })) });
 function ugBuildTrack() {
-  const N = ug.frames.length, tr = new Array(N).fill(null);
   let first = -1; ug.dets.forEach((d, i) => { if (d && d.length && (first < 0 || d.length > ug.dets[first].length)) first = i; }); // anchor on the frame showing the most people
-  ug.people = 0;
-  if (first < 0) { ug.track = []; return; }
+  ug.people = 0; ug.track = []; ug.track2 = [];
+  if (first < 0) return;
   const list0 = ug.dets[first].slice().sort((a, b) => a.x - b.x); ug.people = list0.length;
-  tr[first] = list0[ug.target % list0.length];
+  const A = ugTrackFor(first, list0[ug.target % list0.length]);
+  ug.track = A.track; ug.openBase = A.openBase; ug.found = A.found;
+  if (ug.two && ug.people > 1) { const B = ugTrackFor(first, list0[(ug.target + 1) % list0.length]); ug.track2 = B.track; ug.openBase2 = B.openBase; }
+}
+function ugTrackFor(first, start) {
+  const N = ug.frames.length, tr = new Array(N).fill(null);
+  tr[first] = start;
   const follow = (from, to, step) => { let prev = tr[from];
     for (let i = from + step; i !== to; i += step) { let best = null, bd = Infinity;
       for (const c of ug.dets[i] || []) { const dd = Math.hypot(c.x - prev.x, c.y - prev.y) + Math.abs(c.d - prev.d) * 2; if (dd < bd) { bd = dd; best = c; } }
@@ -2595,9 +2608,9 @@ function ugBuildTrack() {
       out[i] = { x: A.x + (B.x - A.x) * u, y: A.y + (B.y - A.y) * u, d: A.d + (B.d - A.d) * u, ang: A.ang + (B.ang - A.ang) * u, open: A.open + (B.open - A.open) * u, mx, my, poly: near.poly.map(p => ({ x: p.x + mx - near.mx, y: p.y + my - near.my })) };
     } else out[i] = tr[a >= 0 ? a : b2];
   }
-  ug.track = out.map((t, i) => { const a = out[Math.max(0, i - 1)], c = out[Math.min(N - 1, i + 1)]; return { x: (a.x + 2 * t.x + c.x) / 4, y: (a.y + 2 * t.y + c.y) / 4, d: (a.d + 2 * t.d + c.d) / 4, ang: (a.ang + 2 * t.ang + c.ang) / 4, open: (a.open + 2 * t.open + c.open) / 4, mx: t.mx, my: t.my, poly: t.poly }; });
-  const opens = ug.track.map(t => t.open).sort((a, b) => a - b); ug.openBase = opens[Math.floor(opens.length * .15)] || 0; // "mouth closed" baseline
-  ug.found = known.length;
+  const track = out.map((t, i) => { const a = out[Math.max(0, i - 1)], c = out[Math.min(N - 1, i + 1)]; return { x: (a.x + 2 * t.x + c.x) / 4, y: (a.y + 2 * t.y + c.y) / 4, d: (a.d + 2 * t.d + c.d) / 4, ang: (a.ang + 2 * t.ang + c.ang) / 4, open: (a.open + 2 * t.open + c.open) / 4, mx: t.mx, my: t.my, poly: t.poly }; });
+  const opens = track.map(t => t.open).sort((a, b) => a - b);
+  return { track, openBase: opens[Math.floor(opens.length * .15)] || 0, found: known.length }; // openBase = "mouth closed" baseline
 }
 /* ---------- touch-up brush on the cut-out ---------- */
 let brushMode = 'move', brushAt = null;
@@ -2874,10 +2887,17 @@ function syncGif() {
   if (show && ug.frames.length) setPreviewSize(cur.outW, cur.outH); else setPreviewSize(W, W);
   $('gifSizeRow').hidden = !ug.frames.length; $('gifNext').hidden = !(ug.people > 1); $('gifMouthRow').hidden = !ug.track.length;
   $('gifMouth').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.m === ug.mouth));
-  if (ug.people > 1) $('gifNext').textContent = `👥 Switch person (${ug.target % ug.people + 1}/${ug.people})`;
+  if (ug.people > 1) $('gifNext').textContent = ug.two ? '👥 Switch people' : `👥 Switch person (${ug.target % ug.people + 1}/${ug.people})`;
+  $('gifFacesRow').hidden = !(ug.people > 1); $('gifSwap').hidden = !(ug.two && ug.people > 1);
+  $('gifFaces').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', (b.dataset.n === '2') === ug.two));
+  const tn = $('gifTwoNote'); tn.hidden = !ug.two;
+  if (ug.two) { tn.innerHTML = ''; if (duo()) tn.textContent = `${N1() || 'Friend 1'} and ${N2() || 'Friend 2'} go on the two people. Use Switch / Swap to rearrange.`;
+    else { tn.append('Add a second face first: '); const a = document.createElement('button'); a.type = 'button'; a.className = 'linkbtn'; a.textContent = '+ Add Friend 2'; a.onclick = () => { setActive(1); showPage('face'); setDetect('Add the second face for your GIF.'); }; tn.appendChild(a); } }
 }
 $('gifSize').oninput = e => { ug.size = +e.target.value; };
 $('gifMouth').querySelectorAll('button').forEach(b => b.onclick = () => { ug.mouth = b.dataset.m; syncGif(); });
+$('gifFaces').querySelectorAll('button').forEach(b => b.onclick = () => { ug.two = b.dataset.n === '2'; ugBuildTrack(); ug.ver++; syncGif(); });
+$('gifSwap').onclick = () => { ug.swap = !ug.swap; ug.ver++; };
 $('gifNext').onclick = () => { ug.target = (ug.target + 1) % Math.max(1, ug.people); ugBuildTrack(); ug.ver++; syncGif(); };
 $('gifFile').addEventListener('change', async e => {
   const file = e.target.files[0]; e.target.value = ''; if (!file || ug.busy) return;
@@ -3164,7 +3184,7 @@ function loop(now) {
   let f;
   if (cur.delays) { const sp = +speedIn.value, tot = cur.delays.reduce((a, b) => a + b, 0) * 10 / sp; let tt = (now - start) % tot; f = 0; while (f < cur.frames - 1 && tt >= cur.delays[f] * 10 / sp) { tt -= cur.delays[f] * 10 / sp; f++; } }
   else { const d = delayCs() * 10; f = Math.floor((now - start) / d) % cur.frames; }
-  const key = cur.id + [ug.ver, ug.mouth, ug.target, ug.size, ug.manual && ug.manual.x, ug.manual && ug.manual.y, pv.width, pv.height].join() + JSON.stringify(chat) + JSON.stringify(scene.chars) + [scene.propSwap, scene.sel, scene.mode, scene.bgId, scene.bgZoom, scene.bgX, scene.bgY].join() + hatSel + outfitSel + skin + active + slots[1].has + N1() + '|' + N2() + slots[0].st.eye + slots[1].st.eye + f + st.ox + st.oy + st.zoom + st.rot + st.eye + topIn.value + '|' + botIn.value + src.width;
+  const key = cur.id + [ug.ver, ug.two, ug.swap, ug.mouth, ug.target, ug.size, ug.manual && ug.manual.x, ug.manual && ug.manual.y, pv.width, pv.height].join() + JSON.stringify(chat) + JSON.stringify(scene.chars) + [scene.propSwap, scene.sel, scene.mode, scene.bgId, scene.bgZoom, scene.bgX, scene.bgY].join() + hatSel + outfitSel + skin + active + slots[1].has + N1() + '|' + N2() + slots[0].st.eye + slots[1].st.eye + f + st.ox + st.oy + st.zoom + st.rot + st.eye + topIn.value + '|' + botIn.value + src.width;
   if (key !== lastKey) { lastKey = key; pctx.clearRect(0, 0, pv.width, pv.height); isPreview = true; render(pctx, f / cur.frames, cur); isPreview = false; }
   requestAnimationFrame(loop);
 }
