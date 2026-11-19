@@ -200,11 +200,21 @@ footer{text-align:center;margin-top:30px;font-size:14px;opacity:.7}
           <h2><span class="num">2</span> Pick the bit</h2>
           <div class="pickbar"><span class="small">Tap a pack to open it</span><button class="btn ghost" id="surprise" type="button">🎲 Surprise me</button></div>
       <section class="packsec open"><button type="button" class="packhead">😂 Classics</button><div class="bits" id="bits" role="group" aria-label="Classic animations"></div></section>
+      <section class="packsec"><button type="button" class="packhead">🎞️ Your GIF <span class="small">· swap a face into any GIF</span></button><div class="bits" id="bits7" role="group" aria-label="Your GIF"></div></section>
       <section class="packsec"><button type="button" class="packhead">📅 Days of the Week</button><div class="bits" id="bits6" role="group" aria-label="Day of the week animations"></div></section>
       <section class="packsec"><button type="button" class="packhead">🕺 Full Body</button><div class="bits" id="bits3" role="group" aria-label="Full body animations"></div></section>
       <section class="packsec"><button type="button" class="packhead">👥 Duo <span class="small">· add Friend 2 in step 1</span></button><div class="bits" id="bits5" role="group" aria-label="Duo animations"></div></section>
       <section class="packsec"><button type="button" class="packhead">💼 Strategy Manager</button><div class="bits" id="bits2" role="group" aria-label="Strategy Manager animations"></div></section>
       <section class="packsec"><button type="button" class="packhead">💘 Office Romance</button><div class="bits" id="bits4" role="group" aria-label="Office Romance animations"></div></section>
+          <div class="chatedit" id="gifEdit" hidden>
+            <div class="label" style="margin-top:0">🎞️ Your GIF</div>
+            <label class="btn block" for="gifFile">🎞️ Choose a GIF</label>
+            <input id="gifFile" type="file" accept="image/gif" class="vh">
+            <p class="small" id="gifNote" style="margin:8px 0 0">Upload a GIF and we'll find the face in every frame and swap in your friend's.</p>
+            <div class="slider" id="gifSizeRow" hidden style="margin-top:10px"><label for="gifSize">Face size</label><input id="gifSize" type="range" min="0.6" max="2" step="0.01" value="1.25"></div>
+            <div class="row" style="justify-content:flex-start"><button type="button" class="btn ghost" id="gifNext" hidden>👥 Switch person</button></div>
+            <p class="small" style="margin:8px 0 0">Only use GIFs you have the right to share.</p>
+          </div>
           <div class="chatedit" id="propEdit" hidden>
             <div class="label" style="margin-top:0">💍 Who's who</div>
             <div class="people">
@@ -1342,6 +1352,26 @@ const TEMPLATES = [
     if (x > 50 && x < 330 && y > 70 && y < 340) continue;
     c.fillStyle = '#fff'; c.beginPath(); c.moveTo(x, y - s); c.quadraticCurveTo(x, y, x + s, y); c.quadraticCurveTo(x, y, x, y + s); c.quadraticCurveTo(x, y, x - s, y); c.quadraticCurveTo(x, y, x, y - s); c.fill(); }
 }},
+/* ----- Your GIF ----- */
+{ id: 'usergif', pack: 'usergif', name: 'Your GIF', e: '🎞️', frames: 1, draw(c, t) {
+  const CW = c.canvas.width, CH = c.canvas.height;
+  if (!ug.frames.length) {
+    const g = c.createLinearGradient(0, 0, 0, CH); g.addColorStop(0, '#2a2333'); g.addColorStop(1, '#4a3a5e'); c.fillStyle = g; c.fillRect(0, 0, CW, CH);
+    c.strokeStyle = 'rgba(255,255,255,.35)'; c.setLineDash([10, 8]); c.lineWidth = 3; c.strokeRect(24, 24, CW - 48, CH - 48); c.setLineDash([]);
+    drawFace(c, CW / 2, CH / 2 - 20 + Math.sin(TAU * t) * 6, 150, Math.sin(TAU * t) * .1);
+    c.fillStyle = '#fff'; c.font = '800 17px "Bricolage Grotesque", sans-serif'; c.textAlign = 'center'; c.fillText('🎞️ Upload a GIF below', CW / 2, CH - 52);
+    return;
+  }
+  const n = ug.frames.length, i = Math.min(n - 1, Math.floor(t * n + 1e-6));
+  c.drawImage(ug.frames[i].cv, 0, 0, CW, CH);
+  const eyeY = E1() * 400, ds = Math.max(80, 390 - eyeY);
+  if (ug.track.length) {
+    const tr = ug.track[i], s = tr.d / ds * ug.size, off = (200 - eyeY) * s;
+    drawFace(c, tr.x - Math.sin(tr.ang) * off, tr.y + Math.cos(tr.ang) * off, 400 * s, tr.ang);
+  } else if (ug.manual) {
+    drawFace(c, ug.manual.x, ug.manual.y, CH * .5 * ug.size, 0);
+  }
+}},
 /* ----- Days of the Week pack ----- */
 { id: 'mon', pack: 'days', dow: 1, name: 'Marvelous Monday', e: '☕', frames: 32, draw(c, t) {
   const g = c.createLinearGradient(0, 0, 0, W); g.addColorStop(0, '#ffd08a'); g.addColorStop(1, '#ff8fb1'); c.fillStyle = g; c.fillRect(0, 0, W, W);
@@ -2140,7 +2170,7 @@ TEMPLATES.forEach(tp => {
   b.setAttribute('aria-pressed', tp === cur); b.innerHTML = `<span class="e">${tp.e}</span><span>${tp.name}</span>`;
   b.onclick = () => { cur = tp; start = performance.now(); document.querySelectorAll('.bit').forEach(x => x.setAttribute('aria-pressed', x === b)); syncPanels(); };
   if (tp.dow !== undefined && tp.dow === new Date().getDay()) { b.classList.add('isToday'); b.insertAdjacentHTML('beforeend', '<span class="today">Today</span>'); }
-  ({ strategy: $('bits2'), body: $('bits3'), romance: $('bits4'), duo: $('bits5'), days: $('bits6') }[tp.pack] || bitsEl).appendChild(b);
+  ({ strategy: $('bits2'), body: $('bits3'), romance: $('bits4'), duo: $('bits5'), days: $('bits6'), usergif: $('bits7') }[tp.pack] || bitsEl).appendChild(b);
 });
 
 function chips(el, list, get, set) {
@@ -2436,6 +2466,98 @@ async function autoCut() {
   brushMode = 'move'; fitTraced();
   setDetect('✨ Cut out by AI! Fix any bits with ➕ Keep / ➖ Erase.'); syncShapeUI();
 }
+/* ---------- 🎞️ Your GIF: decode a GIF, track the face in every frame, swap in your friend ---------- */
+function lzwDecodeGif(minCode, data, npix) {
+  const out = new Uint8Array(npix), clear = 1 << minCode, eoi = clear + 1;
+  const prefix = new Int16Array(4096), suffix = new Uint8Array(4096), first = new Uint8Array(4096), stack = new Uint8Array(4097);
+  for (let i = 0; i < clear; i++) { prefix[i] = -1; suffix[i] = i; first[i] = i; }
+  let size = minCode + 1, dict = eoi + 1, prev = -1, op = 0, bit = 0; const total = data.length * 8;
+  while (bit + size <= total && op < npix) {
+    let code = 0; for (let i = 0; i < size; i++) { const b = bit + i; if (data[b >> 3] & (1 << (b & 7))) code |= 1 << i; } bit += size;
+    if (code === clear) { size = minCode + 1; dict = eoi + 1; prev = -1; continue; }
+    if (code === eoi) break;
+    if (prev === -1) { out[op++] = suffix[code]; prev = code; continue; }
+    const fc = code < dict ? first[code] : first[prev];
+    if (dict < 4096) { prefix[dict] = prev; suffix[dict] = fc; first[dict] = first[prev]; dict++; if (dict === (1 << size) && size < 12) size++; }
+    let c = code, sp = 0; while (c !== -1 && sp < 4097) { stack[sp++] = suffix[c]; c = prefix[c]; }
+    while (sp > 0 && op < npix) out[op++] = stack[--sp];
+    prev = code;
+  }
+  return out;
+}
+function decodeGif(b) {
+  if (b[0] !== 71 || b[1] !== 73 || b[2] !== 70) throw new Error('not a gif');
+  let p = 6; const rd = () => b[p++], rd16 = () => { const v = b[p] | (b[p + 1] << 8); p += 2; return v; };
+  const W0 = rd16(), H0 = rd16(), fl = rd(); p += 2;
+  let gct = null; if (fl & 0x80) { const n = 2 << (fl & 7); gct = b.subarray(p, p + n * 3); p += n * 3; }
+  const comp = document.createElement('canvas'); comp.width = W0; comp.height = H0; const cx = comp.getContext('2d', { willReadFrequently: true });
+  const frames = []; let gce = { delay: 10, disp: 0, trans: -1 };
+  while (p < b.length && frames.length < 600) {
+    const blk = rd();
+    if (blk === 0x3B) break;
+    if (blk === 0x21) {
+      const lab = rd();
+      if (lab === 0xF9) { rd(); const pf = rd(), dl = rd16(), ti = rd(); rd(); gce = { delay: dl || 10, disp: (pf >> 2) & 7, trans: pf & 1 ? ti : -1 }; }
+      else { let sz; while ((sz = rd())) p += sz; }
+      continue;
+    }
+    if (blk !== 0x2C) break;
+    const ix = rd16(), iy = rd16(), iw = rd16(), ih = rd16(), ifl = rd();
+    let ct = gct; if (ifl & 0x80) { const n = 2 << (ifl & 7); ct = b.subarray(p, p + n * 3); p += n * 3; }
+    const inter = !!(ifl & 0x40), minCode = rd(), chunks = []; let tot = 0, sz;
+    while ((sz = rd())) { chunks.push(b.subarray(p, p + sz)); p += sz; tot += sz; }
+    const data = new Uint8Array(tot); let o = 0; for (const ch of chunks) { data.set(ch, o); o += ch.length; }
+    if (!ct || !iw || !ih) { gce = { delay: 10, disp: 0, trans: -1 }; continue; }
+    const idx = lzwDecodeGif(minCode, data, iw * ih);
+    const keep = gce.disp === 3 ? cx.getImageData(0, 0, W0, H0) : null;
+    const rx = Math.max(0, ix), ry = Math.max(0, iy), rw = Math.min(W0, ix + iw) - rx, rh = Math.min(H0, iy + ih) - ry;
+    if (rw > 0 && rh > 0) {
+      const id = cx.getImageData(rx, ry, rw, rh);
+      const rows = []; if (inter) { for (const [s0, st] of [[0, 8], [4, 8], [2, 4], [1, 2]]) for (let r = s0; r < ih; r += st) rows.push(r); } else for (let r = 0; r < ih; r++) rows.push(r);
+      for (let k = 0; k < ih; k++) {
+        const y = iy + rows[k] - ry; if (y < 0 || y >= rh) continue;
+        for (let x = 0; x < iw; x++) {
+          const ci = idx[k * iw + x], X = ix + x - rx; if (ci === gce.trans || X < 0 || X >= rw) continue;
+          const q = (y * rw + X) * 4; id.data[q] = ct[ci * 3]; id.data[q + 1] = ct[ci * 3 + 1]; id.data[q + 2] = ct[ci * 3 + 2]; id.data[q + 3] = 255;
+        }
+      }
+      cx.putImageData(id, rx, ry);
+    }
+    const snap = document.createElement('canvas'); snap.width = W0; snap.height = H0; snap.getContext('2d').drawImage(comp, 0, 0);
+    frames.push({ cv: snap, delay: Math.max(2, gce.delay) });
+    if (gce.disp === 2) cx.clearRect(ix, iy, iw, ih); else if (keep) cx.putImageData(keep, 0, 0);
+    gce = { delay: 10, disp: 0, trans: -1 };
+  }
+  if (!frames.length) throw new Error('no frames');
+  return { w: W0, h: H0, frames };
+}
+const ug = { frames: [], dets: [], track: [], target: 0, people: 0, size: 1.25, manual: null, ver: 0, busy: false };
+function ugFaceInfo(r) {
+  const P = r.landmarks.positions, avg = ids => ids.reduce((a, i) => ({ x: a.x + P[i].x / ids.length, y: a.y + P[i].y / ids.length }), { x: 0, y: 0 });
+  const L = avg([36, 37, 38, 39, 40, 41]), R = avg([42, 43, 44, 45, 46, 47]), E = { x: (L.x + R.x) / 2, y: (L.y + R.y) / 2 }, ang = Math.atan2(R.y - L.y, R.x - L.x), ch = P[8];
+  return { x: E.x, y: E.y, ang, d: Math.max(6, (ch.x - E.x) * -Math.sin(ang) + (ch.y - E.y) * Math.cos(ang)) };
+}
+function ugBuildTrack() {
+  const N = ug.frames.length, tr = new Array(N).fill(null);
+  let first = -1; ug.dets.forEach((d, i) => { if (d && d.length && (first < 0 || d.length > ug.dets[first].length)) first = i; }); // anchor on the frame showing the most people
+  ug.people = 0;
+  if (first < 0) { ug.track = []; return; }
+  const list0 = ug.dets[first].slice().sort((a, b) => a.x - b.x); ug.people = list0.length;
+  tr[first] = list0[ug.target % list0.length];
+  const follow = (from, to, step) => { let prev = tr[from];
+    for (let i = from + step; i !== to; i += step) { let best = null, bd = Infinity;
+      for (const c of ug.dets[i] || []) { const dd = Math.hypot(c.x - prev.x, c.y - prev.y) + Math.abs(c.d - prev.d) * 2; if (dd < bd) { bd = dd; best = c; } }
+      if (best && bd < prev.d * 1.6) { tr[i] = best; prev = best; } } };
+  follow(first, N, 1); follow(first, -1, -1);
+  const known = tr.map((t, i) => t ? i : -1).filter(i => i >= 0), out = tr.slice();
+  for (let i = 0; i < N; i++) if (!out[i]) {
+    let a = -1, b2 = -1; for (const k of known) { if (k < i) a = k; else if (k > i) { b2 = k; break; } }
+    if (a >= 0 && b2 >= 0) { const u = (i - a) / (b2 - a), A = tr[a], B = tr[b2]; out[i] = { x: A.x + (B.x - A.x) * u, y: A.y + (B.y - A.y) * u, d: A.d + (B.d - A.d) * u, ang: A.ang + (B.ang - A.ang) * u }; }
+    else out[i] = tr[a >= 0 ? a : b2];
+  }
+  ug.track = out.map((t, i) => { const a = out[Math.max(0, i - 1)], c = out[Math.min(N - 1, i + 1)]; return { x: (a.x + 2 * t.x + c.x) / 4, y: (a.y + 2 * t.y + c.y) / 4, d: (a.d + 2 * t.d + c.d) / 4, ang: (a.ang + 2 * t.ang + c.ang) / 4 }; });
+  ug.found = known.length;
+}
 /* ---------- touch-up brush on the cut-out ---------- */
 let brushMode = 'move', brushAt = null;
 function paintMask(a, b) {
@@ -2703,6 +2825,57 @@ $('surprise').onclick = () => {
   b.click(); openPackOf(b); b.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 };
 
+/* ---------- Your GIF panel ---------- */
+const ugNote = m => { $('gifNote').textContent = m; };
+function setPreviewSize(w, h) { if (pv.width !== w || pv.height !== h) { pv.width = w; pv.height = h; } pv.style.aspectRatio = `${w} / ${h}`; lastKey = ''; }
+function syncGif() {
+  const show = cur.id === 'usergif'; $('gifEdit').hidden = !show;
+  if (show && ug.frames.length) setPreviewSize(cur.outW, cur.outH); else setPreviewSize(W, W);
+  $('gifSizeRow').hidden = !ug.frames.length; $('gifNext').hidden = !(ug.people > 1);
+  if (ug.people > 1) $('gifNext').textContent = `👥 Switch person (${ug.target % ug.people + 1}/${ug.people})`;
+}
+$('gifSize').oninput = e => { ug.size = +e.target.value; };
+$('gifNext').onclick = () => { ug.target = (ug.target + 1) % Math.max(1, ug.people); ugBuildTrack(); ug.ver++; syncGif(); };
+$('gifFile').addEventListener('change', async e => {
+  const file = e.target.files[0]; e.target.value = ''; if (!file || ug.busy) return;
+  ug.busy = true; ugNote('📖 Reading the GIF…');
+  try {
+    const g = decodeGif(new Uint8Array(await file.arrayBuffer()));
+    let frames = g.frames; const maxF = 120;
+    if (frames.length > maxF) { const step = frames.length / maxF; frames = Array.from({ length: maxF }, (_, i) => { const a = Math.floor(i * step), b2 = Math.max(a + 1, Math.floor((i + 1) * step)); let d = 0; for (let j = a; j < b2; j++) d += g.frames[j].delay; return { cv: g.frames[a].cv, delay: d }; }); }
+    const k = 360 / Math.max(g.w, g.h), OW = Math.max(2, Math.round(g.w * k)), OH = Math.max(2, Math.round(g.h * k));
+    ug.frames = frames.map(fr => { const cv = document.createElement('canvas'); cv.width = OW; cv.height = OH; const x = cv.getContext('2d'); x.imageSmoothingQuality = 'high'; x.drawImage(fr.cv, 0, 0, OW, OH); return { cv, delay: fr.delay }; });
+    const tp = TEMPLATES.find(x => x.id === 'usergif'); Object.assign(tp, { frames: ug.frames.length, outW: OW, outH: OH, delays: ug.frames.map(fr => fr.delay) });
+    ug.dets = []; ug.track = []; ug.people = 0; ug.target = 0; ug.manual = { x: OW / 2, y: OH * .45 }; ug.ver++;
+    const b = document.querySelector('.bit[data-id="usergif"]'); if (cur.id !== 'usergif' && b) b.click(); else syncGif();
+    let fa = null; try { ugNote('🔍 Loading the face finder…'); fa = await loadFaceLib(); } catch (err) { fa = null; }
+    if (fa) {
+      // detect on bigger frames than the 360px output so small faces in group shots are still found
+      const dk = Math.min(1, 640 / Math.max(g.w, g.h)), DW = Math.round(g.w * dk), DH = Math.round(g.h * dk), back = OW / DW;
+      const dc = document.createElement('canvas'); dc.width = DW; dc.height = DH; const dx = dc.getContext('2d');
+      for (let i = 0; i < frames.length; i++) {
+        ugNote(`🔍 Finding faces… ${i + 1}/${frames.length}`);
+        dx.clearRect(0, 0, DW, DH); dx.drawImage(frames[i].cv, 0, 0, DW, DH);
+        try { const r = await fa.detectAllFaces(dc, new fa.TinyFaceDetectorOptions({ inputSize: 512, scoreThreshold: .45 })).withFaceLandmarks(true);
+          ug.dets.push(r.map(ugFaceInfo).map(q => ({ x: q.x * back, y: q.y * back, d: q.d * back, ang: q.ang }))); }
+        catch (err) { ug.dets.push([]); }
+        if (i % 3 === 2) await tick();
+      }
+      ugBuildTrack();
+    }
+    ug.ver++; syncGif();
+    ugNote(ug.track.length ? `🎯 Found the face in ${ug.found} of ${ug.frames.length} frames${ug.people > 1 ? ` · ${ug.people} people — tap Switch person to pick` : ''}. Adjust the size if needed.`
+      : "Couldn't find a face in this GIF — drag your friend's face into place on the preview.");
+  } catch (err) { ugNote("That file didn't work — make sure it's a GIF."); }
+  ug.busy = false;
+});
+{ // without tracking, drag the face into place on the preview
+  let drag = null; const pt = e => { const r = pv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * pv.width, y: (e.clientY - r.top) / r.height * pv.height }; };
+  pv.addEventListener('pointerdown', e => { if (cur.id !== 'usergif' || !ug.frames.length || ug.track.length || !ug.manual) return; e.preventDefault(); try { pv.setPointerCapture(e.pointerId); } catch (er) {} const q = pt(e); drag = { dx: ug.manual.x - q.x, dy: ug.manual.y - q.y }; });
+  pv.addEventListener('pointermove', e => { if (!drag) return; const q = pt(e); ug.manual = { x: q.x + drag.dx, y: q.y + drag.dy }; });
+  ['pointerup', 'pointercancel'].forEach(n => pv.addEventListener(n, () => { drag = null; }));
+}
+
 /* ---------- Tailgate proposal: who's who ---------- */
 function syncProp() {
   const show = cur.id === 'tailgate'; $('propEdit').hidden = !show; if (!show) return;
@@ -2866,7 +3039,7 @@ $('ceReset').onclick = () => { chat = { msgs: ['', '', '', ''], reply: '' }; sav
   $('ceAdd' + (i + 1)).onclick = () => { setActive(i); showPage('face'); if (i === 1 && !slots[1].has) setDetect('Add a photo of the person they’re chatting with.'); };
 });
 function syncPanels() {
-  syncProp();
+  syncProp(); syncGif();
   const sc = cur.id === 'scene'; $('sceneEdit').hidden = !sc; pv.classList.toggle('draggable', sc); if (sc) renderDancers();
   const show = cur.id === 'teamsdm'; $('chatEdit').hidden = !show; if (!show) return;
   $('cePhoto1').style.backgroundImage = `url(${face.toDataURL('image/png')})`;
@@ -2901,7 +3074,7 @@ const topIn = $('top'), botIn = $('bottom');
 function caption(c, text, isTop) {
   text = (text || '').toUpperCase().trim(); if (!text) return;
   const font = s => `${s}px Anton, Impact, "Arial Black", sans-serif`;
-  const fits = (ls, s) => { c.font = font(s); return ls.every(l => c.measureText(l).width <= W - 24); };
+  const CW = c.canvas.width, CH = c.canvas.height, fits = (ls, s) => { c.font = font(s); return ls.every(l => c.measureText(l).width <= CW - 24); };
   let size = 48, lines = [text];
   while (!fits(lines, size) && size > 30) size -= 2;
   if (!fits(lines, size)) {
@@ -2919,8 +3092,8 @@ function caption(c, text, isTop) {
   }
   c.font = font(size); c.textAlign = 'center'; c.textBaseline = 'alphabetic'; c.lineJoin = 'round';
   c.lineWidth = Math.max(3, size / 6); c.strokeStyle = '#000'; c.fillStyle = '#fff';
-  const lh = size * 1.05; let y = isTop ? 12 + size * 0.92 : W - 21 - (lines.length - 1) * lh;
-  for (const l of lines) { c.strokeText(l, 180, y); c.fillText(l, 180, y); y += lh; }
+  const lh = size * 1.05; let y = isTop ? 12 + size * 0.92 : CH - 21 - (lines.length - 1) * lh;
+  for (const l of lines) { c.strokeText(l, CW / 2, y); c.fillText(l, CW / 2, y); y += lh; }
 }
 function render(c, t, tp) {
   const f = Math.round(t * tp.frames);
@@ -2935,7 +3108,7 @@ function watermark(c) {
   c.font = '800 12px "Bricolage Grotesque", system-ui, sans-serif';
   c.textAlign = 'right'; c.textBaseline = 'bottom'; c.lineJoin = 'round';
   c.lineWidth = 3; c.strokeStyle = 'rgba(0,0,0,.55)'; c.fillStyle = 'rgba(255,255,255,.9)';
-  c.strokeText('T$ GIF Creator', W - 7, W - 5); c.fillText('T$ GIF Creator', W - 7, W - 5);
+  const CW = c.canvas.width, CH = c.canvas.height; c.strokeText('T$ GIF Creator', CW - 7, CH - 5); c.fillText('T$ GIF Creator', CW - 7, CH - 5);
   c.restore();
 }
 
@@ -2945,9 +3118,11 @@ speedIn.oninput = () => { $('speedv').textContent = (+speedIn.value) + '×'; };
 
 let start = performance.now(), lastKey = '';
 function loop(now) {
-  const d = delayCs() * 10, f = Math.floor((now - start) / d) % cur.frames;
-  const key = cur.id + JSON.stringify(chat) + JSON.stringify(scene.chars) + [scene.propSwap, scene.sel, scene.mode, scene.bgId, scene.bgZoom, scene.bgX, scene.bgY].join() + hatSel + outfitSel + skin + active + slots[1].has + N1() + '|' + N2() + slots[0].st.eye + slots[1].st.eye + f + st.ox + st.oy + st.zoom + st.rot + st.eye + topIn.value + '|' + botIn.value + src.width;
-  if (key !== lastKey) { lastKey = key; pctx.clearRect(0, 0, W, W); isPreview = true; render(pctx, f / cur.frames, cur); isPreview = false; }
+  let f;
+  if (cur.delays) { const sp = +speedIn.value, tot = cur.delays.reduce((a, b) => a + b, 0) * 10 / sp; let tt = (now - start) % tot; f = 0; while (f < cur.frames - 1 && tt >= cur.delays[f] * 10 / sp) { tt -= cur.delays[f] * 10 / sp; f++; } }
+  else { const d = delayCs() * 10; f = Math.floor((now - start) / d) % cur.frames; }
+  const key = cur.id + [ug.ver, ug.target, ug.size, ug.manual && ug.manual.x, ug.manual && ug.manual.y, pv.width, pv.height].join() + JSON.stringify(chat) + JSON.stringify(scene.chars) + [scene.propSwap, scene.sel, scene.mode, scene.bgId, scene.bgZoom, scene.bgX, scene.bgY].join() + hatSel + outfitSel + skin + active + slots[1].has + N1() + '|' + N2() + slots[0].st.eye + slots[1].st.eye + f + st.ox + st.oy + st.zoom + st.rot + st.eye + topIn.value + '|' + botIn.value + src.width;
+  if (key !== lastKey) { lastKey = key; pctx.clearRect(0, 0, pv.width, pv.height); isPreview = true; render(pctx, f / cur.frames, cur); isPreview = false; }
   requestAnimationFrame(loop);
 }
 
@@ -2996,15 +3171,15 @@ function lzw(idx) {
   if (bits > 0) out.push(cur & 255);
   return out;
 }
-function gifHeader(pal) {
-  const h = [71, 73, 70, 56, 57, 97, W & 255, W >> 8, W & 255, W >> 8, 0xF7, 0, 0];
+function gifHeader(pal, w = W, hh = W) {
+  const h = [71, 73, 70, 56, 57, 97, w & 255, w >> 8, hh & 255, hh >> 8, 0xF7, 0, 0];
   for (let i = 0; i < 256; i++) { const p = pal[i] || [0, 0, 0]; h.push(p[0], p[1], p[2]); }
   h.push(0x21, 0xFF, 11, ...'NETSCAPE2.0'.split('').map(s => s.charCodeAt(0)), 3, 1, 0, 0, 0);
   return new Uint8Array(h);
 }
-function frameBytes(idx, delay) {
+function frameBytes(idx, delay, w = W, h = W) {
   const lz = lzw(idx), nb = Math.ceil(lz.length / 255);
-  const head = [0x21, 0xF9, 4, 0x04, delay & 255, delay >> 8, 0, 0, 0x2C, 0, 0, 0, 0, W & 255, W >> 8, W & 255, W >> 8, 0, 8];
+  const head = [0x21, 0xF9, 4, 0x04, delay & 255, delay >> 8, 0, 0, 0x2C, 0, 0, 0, 0, w & 255, w >> 8, h & 255, h >> 8, 0, 8];
   const out = new Uint8Array(head.length + lz.length + nb + 1); out.set(head); let o = head.length;
   for (let i = 0; i < lz.length; i += 255) { const n = Math.min(255, lz.length - i); out[o++] = n; for (let j = 0; j < n; j++) out[o++] = lz[i + j]; }
   out[o] = 0; return out;
@@ -3019,12 +3194,12 @@ makeBtn.onclick = async () => {
   try {
     await fontsReady;
     const tp = cur, N = tp.frames, delay = delayCs();
-    const cv = document.createElement('canvas'); cv.width = cv.height = W;
+    const OW = tp.outW || W, OH = tp.outH || W, cv = document.createElement('canvas'); cv.width = OW; cv.height = OH;
     const c = cv.getContext('2d', { willReadFrequently: true });
     const frames = [], hist = new Uint32Array(32768);
     for (let i = 0; i < N; i++) {
-      c.clearRect(0, 0, W, W); render(c, i / N, tp);
-      const d = c.getImageData(0, 0, W, W).data; frames.push(d);
+      c.clearRect(0, 0, OW, OH); render(c, i / N, tp);
+      const d = c.getImageData(0, 0, OW, OH).data; frames.push(d);
       for (let p = 0; p < d.length; p += 8) hist[((d[p] >> 3) << 10) | ((d[p + 1] >> 3) << 5) | (d[p + 2] >> 3)]++;
       setProg(i / N * 0.25); if (i % 4 === 3) await tick();
     }
@@ -3036,14 +3211,14 @@ makeBtn.onclick = async () => {
       for (let i = 0; i < np; i++) { const p = pal[i], dr = p[0] - r, dg = p[1] - g, db = p[2] - b, dd = dr * dr * 2 + dg * dg * 4 + db * db * 3; if (dd < bd) { bd = dd; best = i; } }
       return lut[k] = best;
     };
-    const parts = [gifHeader(pal)];
+    const parts = [gifHeader(pal, OW, OH)];
     for (let i = 0; i < N; i++) {
-      const d = frames[i], idx = new Uint8Array(W * W);
+      const d = frames[i], idx = new Uint8Array(OW * OH);
       for (let p = 0, q = 0; q < idx.length; p += 4, q++) {
         const k = ((d[p] >> 3) << 10) | ((d[p + 1] >> 3) << 5) | (d[p + 2] >> 3);
         const v = lut[k]; idx[q] = v >= 0 ? v : near(k);
       }
-      parts.push(frameBytes(idx, delay));
+      parts.push(frameBytes(idx, tp.delays ? Math.max(2, Math.round(tp.delays[i] / +speedIn.value)) : delay, OW, OH));
       setProg(0.25 + (i + 1) / N * 0.75); await tick();
     }
     parts.push(new Uint8Array([0x3B]));
