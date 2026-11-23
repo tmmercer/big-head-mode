@@ -586,6 +586,25 @@ function drawHat(c, h) {
   c.restore();
 }
 
+/* An original cartoon baby hippo (used on the Fiona tee and in Hippo Pool). open 0..1, ear wiggle angle, blink 0..1 */
+function drawHippo(c, x, y, s, o = {}) {
+  const open = o.open || 0, ear = o.ear || 0, blink = o.blink || 0, B = '#a796a3', M = '#c7b4c0', P = '#f29bb5', lw = o.lw || 4;
+  c.save(); c.translate(x, y); c.scale(s, s);
+  for (const sd of [-1, 1]) { c.save(); c.translate(sd * 32, -50); c.rotate(sd * (.35 + ear)); c.beginPath(); c.ellipse(0, 0, 10, 13, 0, 0, TAU); fs(c, B, lw); c.beginPath(); c.ellipse(0, 1, 5, 8, 0, 0, TAU); c.fillStyle = P; c.fill(); c.restore(); }
+  c.beginPath(); c.ellipse(0, -18, 46, 40, 0, 0, TAU); fs(c, B, lw);
+  for (const sd of [-1, 1]) { const ex = sd * 19, ey = -26;
+    c.beginPath(); c.ellipse(ex, ey, 9.5, 10 * (1 - blink * .9), 0, 0, TAU); fs(c, '#fff', lw * .7);
+    if (blink < .5) { c.fillStyle = INK; c.beginPath(); c.arc(ex + sd * 1.5, ey + 1.5, 5.5, 0, TAU); c.fill(); c.fillStyle = '#fff'; c.beginPath(); c.arc(ex + sd * 1.5 + 2, ey - 1, 1.8, 0, TAU); c.fill(); } }
+  const my = 20 + open * 6;
+  if (open > .05) { c.beginPath(); c.ellipse(0, my + 12, 40, 10 + open * 26, 0, 0, Math.PI); fs(c, '#7a2e45', lw);
+    c.beginPath(); c.ellipse(0, my + 14 + open * 14, 24, 6 + open * 6, 0, 0, TAU); c.fillStyle = P; c.fill();
+    c.fillStyle = '#fff'; for (const sd of [-1, 1]) { c.beginPath(); c.roundRect ? c.roundRect(sd * 26 - 5, my + 10, 10, 9 + open * 6, 3) : c.rect(sd * 26 - 5, my + 10, 10, 9 + open * 6); c.fill(); c.lineWidth = lw * .5; c.strokeStyle = INK; c.stroke(); } }
+  c.beginPath(); c.ellipse(0, my - 2, 56, 30, 0, 0, TAU); fs(c, M, lw);
+  c.fillStyle = 'rgba(242,120,160,.45)'; for (const sd of [-1, 1]) { c.beginPath(); c.ellipse(sd * 40, my - 12, 9, 6, 0, 0, TAU); c.fill(); }
+  c.fillStyle = '#5a4757'; for (const sd of [-1, 1]) { c.beginPath(); c.ellipse(sd * 16, my - 12, 5, 7, sd * .3, 0, TAU); c.fill(); }
+  if (open <= .05) { c.strokeStyle = INK; c.lineWidth = lw * .8; c.lineCap = 'round'; c.beginPath(); c.arc(0, my - 2, 20, .25 * Math.PI, .75 * Math.PI); c.stroke(); }
+  c.restore();
+}
 const OUTFITS = [
   { id: 'suit', name: 'Suit', e: '👔', upper: '#26365e', lower: '#26365e', thigh: '#4a4f5c', shin: '#4a4f5c', shoe: '#1d1d24',
     torso(c) { c.beginPath(); roundRect(c, -40, -96, 80, 102, 20); fs(c, '#26365e', 4);
@@ -628,6 +647,13 @@ const OUTFITS = [
       c.fillStyle = '#ffd23f'; c.beginPath(); c.arc(0, -90, 5, 0, TAU); c.fill();
       c.strokeStyle = '#6b4423'; c.lineWidth = 6; line(c, -30, -88, 26, -20);
       c.fillStyle = '#6b4423'; c.fillRect(-38, -16, 76, 9); c.fillStyle = '#d9b44a'; c.fillRect(-6, -17, 12, 11); } },
+  { id: 'fiona', name: 'Fiona tee', e: '🦛', upper: '#7cc8ee', lower: 'skin', thigh: '#3a5a8c', shin: '#3a5a8c', shoe: '#f4f4f4',
+    torso(c) { c.beginPath(); roundRect(c, -40, -96, 80, 102, 18); fs(c, '#7cc8ee', 4);
+      c.beginPath(); c.moveTo(-14, -96); c.quadraticCurveTo(0, -80, 14, -96); c.lineWidth = 3; c.strokeStyle = '#4a9cc8'; c.stroke();
+      drawHippo(c, 0, -40, .36, { lw: 5 });
+      c.fillStyle = '#fff'; c.strokeStyle = INK; c.lineWidth = 3; c.lineJoin = 'round'; c.font = '800 15px "Bricolage Grotesque", sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.strokeText('FIONA', 0, -7); c.fillText('FIONA', 0, -7); c.textBaseline = 'alphabetic';
+      c.fillStyle = '#ff6fa3'; c.beginPath(); const hx = 26, hy = -64; c.moveTo(hx, hy + 4); c.bezierCurveTo(hx - 7, hy - 2, hx - 3, hy - 8, hx, hy - 4); c.bezierCurveTo(hx + 3, hy - 8, hx + 7, hy - 2, hx, hy + 4); c.fill(); } },
   { id: 'grocer', name: 'Grocery apron', e: '🛒', upper: '#c62828', lower: 'skin', thigh: '#c8b48a', shin: '#c8b48a', shoe: '#1d1d24',
     torso(c) { c.beginPath(); roundRect(c, -40, -96, 80, 102, 18); fs(c, '#c62828', 4);
       c.beginPath(); c.moveTo(-14, -96); c.lineTo(0, -82); c.lineTo(14, -96); c.closePath(); c.fillStyle = '#8e1b1b'; c.fill();
@@ -1639,6 +1665,40 @@ const TEMPLATES = [
   }
   if (u > .4 && u < .62) { c.strokeStyle = 'rgba(26,20,35,.4)'; c.lineWidth = 3; c.lineCap = 'round'; for (let k = 0; k < 3; k++) { const yy = 72 + k * 14; line(c, X + 40 + k * 8, yy, X + 76 + k * 8, yy - 10); } }
   return { top: 'Aisle 5 MVP' };
+}},
+{ id: 'fiona', pack: 'body', name: 'Hippo Pool', e: '🦛', frames: 36, defaultHat: 'none', draw(c, t, f) {
+  const sky = c.createLinearGradient(0, 0, 0, 220); sky.addColorStop(0, '#9fdcff'); sky.addColorStop(1, '#e3f6ff'); c.fillStyle = sky; c.fillRect(0, 0, W, W);
+  c.fillStyle = '#fff'; [[60, 40], [250, 28]].forEach(([x, y], k) => { const dx = ((t * 20 + k * 90) % 400) - 20; for (const [ox, oy, r] of [[0, 0, 16], [18, -6, 20], [38, 0, 15]]) { c.beginPath(); c.arc((x + dx) % 400 - 20 + ox, y + oy, r, 0, TAU); c.fill(); } });
+  for (let i = 0; i < 9; i++) { c.beginPath(); c.arc(i * 46 - 10 + rnd(i) * 10, 200 - rnd(i + 4) * 30, 34 + rnd(i + 9) * 14, 0, TAU); c.fillStyle = i % 2 ? '#4f9a4a' : '#62b05a'; c.fill(); }
+  c.fillStyle = '#62b05a'; c.fillRect(0, 196, W, 40);
+  c.beginPath(); c.moveTo(150, 236); for (let i = 0; i <= 8; i++) c.lineTo(150 + i * 27, 226 + (i % 2 ? -6 : 4)); c.lineTo(W, 360); c.lineTo(150, 360); c.closePath(); fs(c, '#9a8b7a', 3);
+  const wat = c.createLinearGradient(0, 240, 0, 360); wat.addColorStop(0, '#3fb4c9'); wat.addColorStop(1, '#1f7f9c');
+  c.beginPath(); c.moveTo(166, 360); c.quadraticCurveTo(160, 248, 210, 244); c.lineTo(W, 240); c.lineTo(W, 360); c.closePath(); c.fillStyle = wat; c.fill();
+  // hippo: surfaces, big happy yawn, sinks back (loops)
+  const ease = u => u * u * (3 - 2 * u), cl = (v, a, b) => Math.max(a, Math.min(b, v));
+  const up = ease(cl(t / .18, 0, 1)) * (1 - ease(cl((t - .82) / .18, 0, 1))), open = Math.sin(Math.PI * cl((t - .4) / .3, 0, 1));
+  const HX = 272, WL = 290, hy = WL + 34 - up * 66 - open * 38 + Math.sin(TAU * t * 3) * 2 * up;
+  c.save(); c.beginPath(); c.rect(0, 0, W, WL + 2); c.clip();
+  drawHippo(c, HX, hy, .95, { open, ear: Math.sin(TAU * t * 6) * .25, blink: Math.abs(t - .33) < .025 ? 1 : 0 }); c.restore();
+  c.fillStyle = 'rgba(31,127,156,.55)'; c.fillRect(170, WL, W, 360 - WL);
+  c.strokeStyle = 'rgba(255,255,255,.75)'; c.lineWidth = 3; c.lineCap = 'round';
+  for (let k = 0; k < 2; k++) { const q = (t * 2 + k * .5) % 1; c.globalAlpha = 1 - q; c.beginPath(); c.ellipse(HX, WL + 2, 50 + q * 40, 7 + q * 5, 0, 0, TAU); c.stroke(); } c.globalAlpha = 1;
+  const sp = cl((t - .06) / .22, 0, 1); if (sp > 0 && sp < 1) { c.fillStyle = 'rgba(255,255,255,.9)'; for (let i = 0; i < 12; i++) { const a = -Math.PI * (.12 + .76 * rnd(i + 31)), v = 50 + rnd(i + 5) * 40; c.beginPath(); c.arc(HX + Math.cos(a) * v * sp, WL - Math.sin(-a) * 0 + Math.sin(a) * v * sp + 120 * sp * sp, 4 + rnd(i) * 3, 0, TAU); c.fill(); } }
+  // deck
+  c.beginPath(); c.moveTo(0, 318); c.lineTo(178, 318); c.quadraticCurveTo(170, 340, 176, 360); c.lineTo(0, 360); c.closePath(); fs(c, '#c99a63', 3);
+  c.strokeStyle = '#a77a48'; c.lineWidth = 2; for (let x = 30; x < 180; x += 30) line(c, x, 320, x - 6, 360);
+  c.fillStyle = '#7a5a36'; c.fillRect(30, 252, 6, 66); c.beginPath(); roundRect(c, 6, 228, 74, 28, 6); fs(c, '#e9d3a5', 3);
+  c.fillStyle = INK; c.font = '800 13px "Bricolage Grotesque", sans-serif'; c.textAlign = 'center'; c.fillText('HIPPOS →', 43, 247);
+  // friend: excited wave, little hops while the hippo yawns
+  const w = Math.sin(TAU * t * 4), X = 112, HIP = 262, S = .74, hop = -Math.abs(Math.sin(TAU * t * 6)) * 8 * open;
+  c.fillStyle = 'rgba(0,0,0,.22)'; c.beginPath(); c.ellipse(X, HIP + 82, 52, 8, 0, 0, TAU); c.fill();
+  drawCharacter(c, X, HIP, S, { outfit: 'fiona', armR: [Math.PI * .8 + w * .22, -.35 - w * .2], armL: [.75, -1.9], legL: [.14, -.04], legR: [.12, 0],
+    lean: .05 + w * .02, head: .08 + Math.sin(TAU * t * 2) * .05, bob: hop });
+  for (let k = 0; k < 4; k++) { const q = (t + k / 4) % 1, hx = 200 + Math.sin(q * TAU + k) * 10 + k * 6, hy = 230 - q * 170, r = 7 + k % 2 * 3;
+    c.globalAlpha = Math.sin(q * Math.PI); c.fillStyle = ['#ff6fa3', '#ff4f8b', '#ff9ccc', '#ff6fa3'][k];
+    c.beginPath(); c.moveTo(hx, hy + r); c.bezierCurveTo(hx - r * 1.8, hy - r * .4, hx - r * .7, hy - r * 1.8, hx, hy - r * .6); c.bezierCurveTo(hx + r * .7, hy - r * 1.8, hx + r * 1.8, hy - r * .4, hx, hy + r); c.fill(); }
+  c.globalAlpha = 1;
+  return { top: 'Fiona Fan Club', bottom: N1() ? `President: ${N1()}` : 'Card-carrying member' };
 }},
 { id: 'dance', pack: 'body', defaultHat: 'afro', name: 'Dance Floor', e: '🕺', frames: 32, draw(c, t) {
   const beat = Math.floor(t * 8), cols = ['#ff4f8b', '#ffd23f', '#2ec4b6', '#7b5cff', '#ff8a3d'];
