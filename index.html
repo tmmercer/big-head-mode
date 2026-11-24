@@ -94,6 +94,7 @@ input[type=range]{width:100%;accent-color:var(--pink);height:28px}
 #preview.draggable:active{cursor:grabbing}
 .check{display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px;margin-top:10px}
 .check input{width:20px;height:20px;accent-color:var(--pink)}
+.capoff{font-size:13px;margin-top:6px}
 .seg{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px}
 .seg3{grid-template-columns:repeat(3,1fr)}
 .seg button{font:inherit;font-weight:700;font-size:14px;color:var(--ink);border:2.5px solid var(--ink);border-radius:12px;background:#fff;padding:8px 4px;cursor:pointer}
@@ -260,8 +261,8 @@ footer{text-align:center;margin-top:30px;font-size:14px;opacity:.7}
             <button type="button" class="linkbtn" id="ceReset">↺ Back to the default lines</button>
           </div>
           <div class="fields">
-        <div><label class="field" for="top">Top text</label><input id="top" type="text" maxlength="60" placeholder="optional"></div>
-        <div><label class="field" for="bottom">Bottom text</label><input id="bottom" type="text" maxlength="60" placeholder="optional"></div>
+        <div><label class="field" for="top">Top text</label><input id="top" type="text" maxlength="60" placeholder="optional"><label class="check capoff"><input type="checkbox" id="topOff"> No top text</label></div>
+        <div><label class="field" for="bottom">Bottom text</label><input id="bottom" type="text" maxlength="60" placeholder="optional"><label class="check capoff"><input type="checkbox" id="bottomOff"> No bottom text</label></div>
       </div>
       <div class="slider" style="margin-top:12px"><label for="speed">Speed <span id="speedv">1×</span></label><input id="speed" type="range" min="0.5" max="2" step="0.25" value="1"></div>
         </section>
@@ -3193,7 +3194,10 @@ active = 1; src = slots[1].src; st = slots[1].st; fitBase(); updateFace();
 active = 0; src = slots[0].src; st = slots[0].st; fitBase();
 
 /* ---------- captions + render ---------- */
-const topIn = $('top'), botIn = $('bottom');
+const topIn = $('top'), botIn = $('bottom'), topOff = $('topOff'), botOff = $('bottomOff');
+topIn.addEventListener('input', () => { if (topIn.value.trim()) topOff.checked = false; });
+botIn.addEventListener('input', () => { if (botIn.value.trim()) botOff.checked = false; });
+topOff.onchange = () => { if (topOff.checked) topIn.value = ''; }; botOff.onchange = () => { if (botOff.checked) botIn.value = ''; };
 function caption(c, text, isTop) {
   text = (text || '').toUpperCase().trim(); if (!text) return;
   const font = s => `${s}px Anton, Impact, "Arial Black", sans-serif`;
@@ -3222,8 +3226,9 @@ function render(c, t, tp) {
   const f = Math.round(t * tp.frames);
   hatOK = !tp.noHat; hatT = t; autoHat = tp.defaultHat || 'none';
   c.save(); const d = tp.draw(c, t, f) || {}; c.restore();
-  caption(c, topIn.value || d.top, true);
-  caption(c, botIn.value || d.bottom, false);
+  if (c.canvas === pv) { const ph = (v, dd) => v ? `built-in: ${v}` : 'optional'; topIn.placeholder = topOff.checked ? 'none' : ph(d.top); botIn.placeholder = botOff.checked ? 'none' : ph(d.bottom); }
+  if (!topOff.checked) caption(c, topIn.value.trim() || d.top, true);
+  if (!botOff.checked) caption(c, botIn.value.trim() || d.bottom, false);
   watermark(c);
 }
 function watermark(c) {
@@ -3244,7 +3249,7 @@ function loop(now) {
   let f;
   if (cur.delays) { const sp = +speedIn.value, tot = cur.delays.reduce((a, b) => a + b, 0) * 10 / sp; let tt = (now - start) % tot; f = 0; while (f < cur.frames - 1 && tt >= cur.delays[f] * 10 / sp) { tt -= cur.delays[f] * 10 / sp; f++; } }
   else { const d = delayCs() * 10; f = Math.floor((now - start) / d) % cur.frames; }
-  const key = cur.id + [ug.ver, ug.two, ug.swap, ug.mouth, ug.target, ug.size, ug.manual && ug.manual.x, ug.manual && ug.manual.y, pv.width, pv.height].join() + JSON.stringify(chat) + JSON.stringify(scene.chars) + [scene.propSwap, scene.sel, scene.mode, scene.bgId, scene.bgZoom, scene.bgX, scene.bgY].join() + hatSel + outfitSel + skin + active + slots[1].has + N1() + '|' + N2() + slots[0].st.eye + slots[1].st.eye + f + st.ox + st.oy + st.zoom + st.rot + st.eye + topIn.value + '|' + botIn.value + src.width;
+  const key = cur.id + [ug.ver, ug.two, ug.swap, ug.mouth, ug.target, ug.size, ug.manual && ug.manual.x, ug.manual && ug.manual.y, pv.width, pv.height].join() + JSON.stringify(chat) + JSON.stringify(scene.chars) + [scene.propSwap, scene.sel, scene.mode, scene.bgId, scene.bgZoom, scene.bgX, scene.bgY].join() + hatSel + outfitSel + skin + active + slots[1].has + N1() + '|' + N2() + slots[0].st.eye + slots[1].st.eye + f + st.ox + st.oy + st.zoom + st.rot + st.eye + topIn.value + '|' + botIn.value + topOff.checked + botOff.checked + src.width;
   if (key !== lastKey) { lastKey = key; pctx.clearRect(0, 0, pv.width, pv.height); isPreview = true; render(pctx, f / cur.frames, cur); isPreview = false; }
   requestAnimationFrame(loop);
 }
